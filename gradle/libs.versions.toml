@@ -1,0 +1,15 @@
+[versions]
+log4j2 = "2.24.3"
+junit5 = "5.10.1"
+
+[libraries]
+# Log4j2
+log4j-bom = { module = "org.apache.logging.log4j:log4j-bom", version.ref = "log4j2" }
+log4j-api = { module = "org.apache.logging.log4j:log4j-api" }
+log4j-slf4j2-impl = { module = "org.apache.logging.log4j:log4j-slf4j2-impl" }
+
+# JUnit5
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit5" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter-api" }
+
+[plugins]
