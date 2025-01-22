@@ -13,9 +13,9 @@ public class Main {
         if (args.length != 2) {
             logger.fatal("Incorrect number of arguments");
 
-            System.out.println("Usage: java -jar lab1 INPUT OUTPUT");
-            System.out.println("  INPUT - path of file to process");
-            System.out.println("  OUTPUT - path to result csv file");
+            System.out.println("Запуск: java -jar lab1 ВХОДНОЙ_ФАЙЛ ВЫХОДНОЙ_ФАЙЛ");
+            System.out.println("  ВХОДНОЙ_ФАЙЛ - путь до обрабатываемого файла");
+            System.out.println("  ВЫХОДНОЙ_ФАЙЛ - путь до CSV файла со статистикой");
             return;
         }
 
@@ -32,7 +32,7 @@ public class Main {
             wordsCount = frequencyAnalyzer.getWordsCount();
         } catch (IOException e) {
             logger.error("Failed opening input file `{}`", inputFile, e);
-            System.out.println("Cannot open input file");
+            System.out.println("Не удалось открыть входной файл");
             return;
         }
 
@@ -61,7 +61,7 @@ public class Main {
             bufferedWriter.close();
         } catch (IOException e) {
             logger.error("Failed opening output file `{}`", outputFile, e);
-            System.out.println("Cannot open output file");
+            System.out.println("Не удалось открыть выходной файл");
         }
     }
 }
