@@ -10,6 +10,6 @@ log4j-slf4j2-impl = { module = "org.apache.logging.log4j:log4j-slf4j2-impl" }
 
 # JUnit5
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit5" }
-junit-jupiter = { module = "org.junit.jupiter:junit-jupiter-api" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 
 [plugins]
