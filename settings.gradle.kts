@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "JavaLabsNSU"
 include(":lab1")
+include(":lab2")
