@@ -11,7 +11,7 @@ public class Main {
 
     public static void main(String[] args) {
         if (args.length != 2) {
-            logger.fatal("Incorrect number of arguments");
+            logger.fatal("Неверное количество аргументов");
 
             System.out.println("Запуск: java -jar lab1 ВХОДНОЙ_ФАЙЛ ВЫХОДНОЙ_ФАЙЛ");
             System.out.println("  ВХОДНОЙ_ФАЙЛ - путь до обрабатываемого файла");
@@ -25,19 +25,19 @@ public class Main {
         final Map<String, Long> frequencies;
         final long wordsCount;
         try (FileInputStream fileInputStream = new FileInputStream(inputFile)) {
-            logger.info("Processing file `{}`", inputFile);
+            logger.info("Обработка файла `{}`", inputFile);
 
             FrequencyAnalyzer frequencyAnalyzer = new FrequencyAnalyzer(fileInputStream);
             frequencies = frequencyAnalyzer.getFrequency();
             wordsCount = frequencyAnalyzer.getWordsCount();
         } catch (IOException e) {
-            logger.error("Failed opening input file `{}`", inputFile, e);
+            logger.error("Не удалось открыть входной файл `{}`", inputFile, e);
             System.out.println("Не удалось открыть входной файл");
             return;
         }
 
         try (FileOutputStream fileOutputStream = new FileOutputStream(outputFile)) {
-            logger.info("Writing result to file `{}`", outputFile);
+            logger.info("Запись результата в файл `{}`", outputFile);
 
             // Write header
             BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(fileOutputStream));
@@ -60,7 +60,7 @@ public class Main {
             bufferedWriter.flush();
             bufferedWriter.close();
         } catch (IOException e) {
-            logger.error("Failed opening output file `{}`", outputFile, e);
+            logger.error("Не удалось открыть выходной файл `{}`", outputFile, e);
             System.out.println("Не удалось открыть выходной файл");
         }
     }
