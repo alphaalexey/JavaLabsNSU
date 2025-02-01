@@ -111,7 +111,17 @@ public class TetrisView extends JFrame {
     }
 
     public void showAboutDialog() {
-        JOptionPane.showMessageDialog(this, "Tetris Game\nAuthor: alphaalexey\nVersion: 1.0", "About", JOptionPane.INFORMATION_MESSAGE);
+        String message = """
+                Tetris Game
+                Author: alphaalexey
+                Version: 1.0
+                
+                How to Play:
+                 - Use LEFT and RIGHT arrow keys to move the piece
+                 - Use UP arrow key to rotate the piece
+                 - Use DOWN arrow key to speed up the drop
+                 - Press 'P' to pause/resume the game""";
+        JOptionPane.showMessageDialog(this, message, "About", JOptionPane.INFORMATION_MESSAGE);
     }
 
     public void showGameOverDialog(int score) {
