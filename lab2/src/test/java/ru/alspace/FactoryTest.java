@@ -22,6 +22,6 @@ public class FactoryTest {
         // Выполним
         Context ctx = new Context(new Stack<>(), new HashMap<>());
         cmd.execute(ctx, List.of("10"));
-        assertEquals(10.0, ctx.getStack().peek());
+        assertEquals(10.0, ctx.stack().peek());
     }
 }

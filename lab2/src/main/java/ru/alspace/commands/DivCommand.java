@@ -19,7 +19,7 @@ public class DivCommand implements Command {
             throw new CommandExecutionException("/ : не должно быть аргументов, а получено " + args.size());
         }
 
-        Stack<Double> stack = context.getStack();
+        Stack<Double> stack = context.stack();
         if (stack.size() < 2) {
             throw new CommandExecutionException("/ : в стеке меньше 2 элементов");
         }

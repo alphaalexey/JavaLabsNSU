@@ -32,6 +32,6 @@ public class DefineCommand implements Command {
         }
 
         // Записываем в map
-        context.getDefines().put(name, value);
+        context.defines().put(name, value);
     }
 }

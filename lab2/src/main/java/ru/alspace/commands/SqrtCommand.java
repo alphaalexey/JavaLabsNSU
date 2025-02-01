@@ -19,7 +19,7 @@ public class SqrtCommand implements Command {
             throw new CommandExecutionException("SQRT: не должно быть аргументов, а получено " + args.size());
         }
 
-        Stack<Double> stack = context.getStack();
+        Stack<Double> stack = context.stack();
         if (stack.isEmpty()) {
             throw new CommandExecutionException("SQRT: в стеке нет элементов");
         }

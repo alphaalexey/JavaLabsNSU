@@ -37,7 +37,7 @@ public class CommandsTest {
         cmd.execute(context, List.of("a", "10"));
 
         // Проверим, что в defines лежит a=10.0
-        assertEquals(10.0, context.getDefines().get("a"), 1e-9);
+        assertEquals(10.0, context.defines().get("a"), 1e-9);
     }
 
     @Test
@@ -66,8 +66,8 @@ public class CommandsTest {
         // PUSH 3.14
         Command cmd = new PushCommand();
         cmd.execute(context, List.of("3.14"));
-        assertEquals(1, context.getStack().size());
-        assertEquals(3.14, context.getStack().peek(), 1e-9);
+        assertEquals(1, context.stack().size());
+        assertEquals(3.14, context.stack().peek(), 1e-9);
     }
 
     @Test
@@ -94,30 +94,30 @@ public class CommandsTest {
     @Test
     void testPopNoArgs() throws CommandExecutionException {
         // Положим 2 значения в стек
-        context.getStack().push(10.0);
-        context.getStack().push(20.0);
+        context.stack().push(10.0);
+        context.stack().push(20.0);
 
         Command popCmd = new PopCommand();
         popCmd.execute(context, List.of());
 
         // Удалён верхний элемент (20.0)
-        assertEquals(1, context.getStack().size());
-        assertEquals(10.0, context.getStack().peek());
+        assertEquals(1, context.stack().size());
+        assertEquals(10.0, context.stack().peek());
     }
 
     @Test
     void testPopStoreVariable() throws CommandExecutionException {
         // В стеке [10.0, 20.0]
-        context.getStack().push(10.0);
-        context.getStack().push(20.0);
+        context.stack().push(10.0);
+        context.stack().push(20.0);
 
         // POP x
         Command popCmd = new PopCommand();
         popCmd.execute(context, List.of("x")); // 1 аргумент
 
         // Остался один элемент (10.0), и x=20.0
-        assertEquals(10.0, context.getStack().peek(), 1e-9);
-        assertEquals(20.0, context.getDefines().get("x"), 1e-9);
+        assertEquals(10.0, context.stack().peek(), 1e-9);
+        assertEquals(20.0, context.defines().get("x"), 1e-9);
     }
 
     @Test
@@ -143,7 +143,7 @@ public class CommandsTest {
     // ------------------------------------------------------------
     @Test
     void testPrintOk() throws CommandExecutionException {
-        context.getStack().push(9.0);
+        context.stack().push(9.0);
 
         // Перехватим вывод
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -183,18 +183,18 @@ public class CommandsTest {
     @Test
     void testAddOk() throws CommandExecutionException {
         // Стек: [2, 3], делаем +
-        context.getStack().push(2.0);
-        context.getStack().push(3.0);
+        context.stack().push(2.0);
+        context.stack().push(3.0);
 
         Command addCmd = new AddCommand();
         addCmd.execute(context, List.of());
         // Стек: [5]
-        assertEquals(5.0, context.getStack().peek(), 1e-9);
+        assertEquals(5.0, context.stack().peek(), 1e-9);
     }
 
     @Test
     void testAddNotEnough() {
-        context.getStack().push(2.0);  // всего 1
+        context.stack().push(2.0);  // всего 1
         Command addCmd = new AddCommand();
         assertThrows(CommandExecutionException.class, () ->
                 addCmd.execute(context, List.of())
@@ -215,17 +215,17 @@ public class CommandsTest {
     @Test
     void testSubOk() throws CommandExecutionException {
         // Стек: [10, 4], SUB => 10-4=6
-        context.getStack().push(10.0);
-        context.getStack().push(4.0);
+        context.stack().push(10.0);
+        context.stack().push(4.0);
 
         Command subCmd = new SubCommand();
         subCmd.execute(context, List.of());
-        assertEquals(6.0, context.getStack().peek(), 1e-9);
+        assertEquals(6.0, context.stack().peek(), 1e-9);
     }
 
     @Test
     void testSubNotEnough() {
-        context.getStack().push(10.0); // 1 элемент
+        context.stack().push(10.0); // 1 элемент
         Command subCmd = new SubCommand();
         assertThrows(CommandExecutionException.class, () ->
                 subCmd.execute(context, List.of())
@@ -246,17 +246,17 @@ public class CommandsTest {
     @Test
     void testMulOk() throws CommandExecutionException {
         // Стек: [2, 5], * => 10
-        context.getStack().push(2.0);
-        context.getStack().push(5.0);
+        context.stack().push(2.0);
+        context.stack().push(5.0);
 
         Command mulCmd = new MulCommand();
         mulCmd.execute(context, List.of());
-        assertEquals(10.0, context.getStack().peek(), 1e-9);
+        assertEquals(10.0, context.stack().peek(), 1e-9);
     }
 
     @Test
     void testMulNotEnough() {
-        context.getStack().push(2.0);
+        context.stack().push(2.0);
         Command mulCmd = new MulCommand();
         assertThrows(CommandExecutionException.class, () ->
                 mulCmd.execute(context, List.of())
@@ -277,19 +277,19 @@ public class CommandsTest {
     @Test
     void testDivOk() throws CommandExecutionException {
         // Стек: [9, 3], / => 3
-        context.getStack().push(9.0);
-        context.getStack().push(3.0);
+        context.stack().push(9.0);
+        context.stack().push(3.0);
 
         Command divCmd = new DivCommand();
         divCmd.execute(context, List.of());
-        assertEquals(3.0, context.getStack().peek(), 1e-9);
+        assertEquals(3.0, context.stack().peek(), 1e-9);
     }
 
     @Test
     void testDivZero() {
         // [5, 0]
-        context.getStack().push(5.0);
-        context.getStack().push(0.0);
+        context.stack().push(5.0);
+        context.stack().push(0.0);
 
         Command divCmd = new DivCommand();
         assertThrows(CommandExecutionException.class, () ->
@@ -299,7 +299,7 @@ public class CommandsTest {
 
     @Test
     void testDivNotEnough() {
-        context.getStack().push(5.0); // всего 1
+        context.stack().push(5.0); // всего 1
         Command divCmd = new DivCommand();
         assertThrows(CommandExecutionException.class, () ->
                 divCmd.execute(context, List.of())
@@ -319,15 +319,15 @@ public class CommandsTest {
     // ------------------------------------------------------------
     @Test
     void testSqrtOk() throws CommandExecutionException {
-        context.getStack().push(16.0);
+        context.stack().push(16.0);
         Command sqrtCmd = new SqrtCommand();
         sqrtCmd.execute(context, List.of());
-        assertEquals(4.0, context.getStack().peek(), 1e-9);
+        assertEquals(4.0, context.stack().peek(), 1e-9);
     }
 
     @Test
     void testSqrtNegative() {
-        context.getStack().push(-9.0);
+        context.stack().push(-9.0);
         Command sqrtCmd = new SqrtCommand();
         assertThrows(CommandExecutionException.class, () ->
                 sqrtCmd.execute(context, List.of())

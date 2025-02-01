@@ -19,7 +19,7 @@ public class PrintCommand implements Command {
             throw new CommandExecutionException("PRINT: не должно быть аргументов, а получено " + args.size());
         }
 
-        Stack<Double> stack = context.getStack();
+        Stack<Double> stack = context.stack();
         if (stack.isEmpty()) {
             throw new CommandExecutionException("PRINT: стек пуст");
         }

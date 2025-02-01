@@ -21,7 +21,7 @@ public class PopCommand implements Command {
             throw new CommandExecutionException("POP: Usage - 'POP' или 'POP <varName>' (получено " + args.size() + " арг.)");
         }
 
-        Stack<Double> stack = context.getStack();
+        Stack<Double> stack = context.stack();
         if (stack.isEmpty()) {
             throw new CommandExecutionException("POP: стек пуст");
         }
@@ -32,7 +32,7 @@ public class PopCommand implements Command {
         // Если есть один аргумент, считаем его именем переменной
         if (args.size() == 1) {
             String varName = args.getFirst();
-            context.getDefines().put(varName, top);
+            context.defines().put(varName, top);
         }
     }
 }

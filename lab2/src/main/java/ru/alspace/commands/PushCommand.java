@@ -24,13 +24,13 @@ public class PushCommand implements Command {
             val = Double.parseDouble(token);
         } catch (NumberFormatException e) {
             // Если не число, считаем, что это имя
-            Double defVal = context.getDefines().get(token);
+            Double defVal = context.defines().get(token);
             if (defVal == null) {
                 throw new CommandExecutionException("PUSH: неизвестный параметр '" + token + "'");
             }
             val = defVal;
         }
 
-        context.getStack().push(val);
+        context.stack().push(val);
     }
 }
