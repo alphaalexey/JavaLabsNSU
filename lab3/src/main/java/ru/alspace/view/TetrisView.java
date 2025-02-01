@@ -11,6 +11,10 @@ public class TetrisView extends JFrame {
     private final TetrisModel model;
     private final GamePanel gamePanel;
 
+    // Компоненты для отображения текущего счёта и следующей фигуры
+    private final JLabel scoreLabel;
+    private final JLabel nextPieceLabel;
+
     // Элементы меню
     private final JMenuItem newGameItem;
     private final JMenuItem highScoresItem;
@@ -21,13 +25,27 @@ public class TetrisView extends JFrame {
         this.model = model;
         setTitle("Tetris");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(300, 600);
+        setSize(500, 600);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
         // Инициализация панели игры
         gamePanel = new GamePanel();
         add(gamePanel, BorderLayout.CENTER);
+
+        // Инициализация информационной панели
+        JPanel infoPanel = new JPanel();
+        infoPanel.setPreferredSize(new Dimension(120, 600));
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        scoreLabel = new JLabel("Score: 0");
+        nextPieceLabel = new JLabel("Next: Unknown");
+        scoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        nextPieceLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        infoPanel.add(Box.createVerticalStrut(20));
+        infoPanel.add(scoreLabel);
+        infoPanel.add(Box.createVerticalStrut(20));
+        infoPanel.add(nextPieceLabel);
+        add(infoPanel, BorderLayout.EAST);
 
         // Настройка меню
         JMenuBar menuBar = new JMenuBar();
@@ -44,8 +62,16 @@ public class TetrisView extends JFrame {
         menuBar.add(gameMenu);
         setJMenuBar(menuBar);
 
-        // Таймер для периодического перерисовывания панели игры
-        Timer repaintTimer = new Timer(50, e -> gamePanel.repaint());
+        // Таймер для периодического перерисовывания панели игры и обновления информации
+        Timer repaintTimer = new Timer(50, e -> {
+            gamePanel.repaint();
+            // Обновление метки с текущим счётом
+            scoreLabel.setText("Score: " + model.getScore());
+            // Обновление метки со следующим типом фигуры
+            TetrisPiece next = model.getNextPiece();
+            String nextName = (next != null) ? next.getName() : "Unknown";
+            nextPieceLabel.setText("Next: " + nextName);
+        });
         repaintTimer.start();
     }
 
@@ -78,18 +104,38 @@ public class TetrisView extends JFrame {
         JOptionPane.showMessageDialog(this, "Game Over!\nYour score: " + score, "Game Over", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // Внутренний класс панели игры, отвечающий за отрисовку игрового поля и фигур.
+    // Внутренний класс панели игры, отвечающий за отрисовку игрового поля, фигур и фона-сетки.
     private class GamePanel extends JPanel {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            // Заливка фона
+            // Заливка всего фона
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, getWidth(), getHeight());
 
-            // Вычисляем размеры ячейки
-            int cellWidth = getWidth() / TetrisModel.BOARD_WIDTH;
-            int cellHeight = getHeight() / TetrisModel.BOARD_HEIGHT;
+            // Определяем размер панели
+            int panelWidth = getWidth();
+            int panelHeight = getHeight();
+            // Вычисляем масштаб, чтобы сохранить пропорции игрового поля (BOARD_WIDTH x BOARD_HEIGHT)
+            double scale = Math.min((double) panelWidth / TetrisModel.BOARD_WIDTH, (double) panelHeight / TetrisModel.BOARD_HEIGHT);
+            int boardPixelWidth = (int) (TetrisModel.BOARD_WIDTH * scale);
+            int boardPixelHeight = (int) (TetrisModel.BOARD_HEIGHT * scale);
+            // Центрируем игровое поле
+            int offsetX = (panelWidth - boardPixelWidth) / 2;
+            int offsetY = (panelHeight - boardPixelHeight) / 2;
+
+            // Отрисовка фон-сетки (вертикальные и горизонтальные линии)
+            g.setColor(Color.DARK_GRAY);
+            // Вертикальные линии
+            for (int i = 0; i <= TetrisModel.BOARD_WIDTH; i++) {
+                int x = offsetX + (int) (i * scale);
+                g.drawLine(x, offsetY, x, offsetY + boardPixelHeight);
+            }
+            // Горизонтальные линии
+            for (int i = 0; i <= TetrisModel.BOARD_HEIGHT; i++) {
+                int y = offsetY + (int) (i * scale);
+                g.drawLine(offsetX, y, offsetX + boardPixelWidth, y);
+            }
 
             // Отрисовка уже зафиксированных фигур (игрового поля)
             int[][] board = model.getBoard();
@@ -97,9 +143,12 @@ public class TetrisView extends JFrame {
                 for (int j = 0; j < TetrisModel.BOARD_WIDTH; j++) {
                     if (board[i][j] != 0) {
                         g.setColor(getColorForPiece(board[i][j]));
-                        g.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
-                        g.setColor(Color.DARK_GRAY);
-                        g.drawRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+                        int cellX = offsetX + (int) (j * scale);
+                        int cellY = offsetY + (int) (i * scale);
+                        int cellSize = (int) scale;
+                        g.fillRect(cellX, cellY, cellSize, cellSize);
+                        g.setColor(Color.BLACK);
+                        g.drawRect(cellX, cellY, cellSize, cellSize);
                     }
                 }
             }
@@ -113,12 +162,13 @@ public class TetrisView extends JFrame {
                 for (int i = 0; i < shape.length; i++) {
                     for (int j = 0; j < shape[i].length; j++) {
                         if (shape[i][j] != 0) {
-                            int x = (pieceX + j) * cellWidth;
-                            int y = (pieceY + i) * cellHeight;
                             g.setColor(getColorForPiece(shape[i][j]));
-                            g.fillRect(x, y, cellWidth, cellHeight);
-                            g.setColor(Color.DARK_GRAY);
-                            g.drawRect(x, y, cellWidth, cellHeight);
+                            int x = offsetX + (int) ((pieceX + j) * scale);
+                            int y = offsetY + (int) ((pieceY + i) * scale);
+                            int cellSize = (int) scale;
+                            g.fillRect(x, y, cellSize, cellSize);
+                            g.setColor(Color.BLACK);
+                            g.drawRect(x, y, cellSize, cellSize);
                         }
                     }
                 }

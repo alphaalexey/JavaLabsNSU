@@ -9,23 +9,6 @@ public class TetrisPiece {
         this.shape = shape;
     }
 
-    public int[][] getShape() {
-        return shape;
-    }
-
-    // Метод поворота фигуры по часовой стрелке. Возвращается новый объект TetrisPiece.
-    public TetrisPiece rotate() {
-        int rows = shape.length;
-        int cols = shape[0].length;
-        int[][] rotated = new int[cols][rows];
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                rotated[j][rows - 1 - i] = shape[i][j];
-            }
-        }
-        return new TetrisPiece(rotated);
-    }
-
     // Возвращает случайную фигуру из стандартного набора (I, J, L, O, S, T, Z)
     public static TetrisPiece getRandomPiece(Random random) {
         int r = random.nextInt(7);
@@ -67,5 +50,43 @@ public class TetrisPiece {
             }); // Z
             default -> null;
         };
+    }
+
+    public int[][] getShape() {
+        return shape;
+    }
+
+    // Метод для получения названия фигуры
+    public String getName() {
+        for (int[] ints : shape) {
+            for (int anInt : ints) {
+                if (anInt != 0) {
+                    return switch (anInt) {
+                        case 1 -> "I";
+                        case 2 -> "J";
+                        case 3 -> "L";
+                        case 4 -> "O";
+                        case 5 -> "S";
+                        case 6 -> "T";
+                        case 7 -> "Z";
+                        default -> "Unknown";
+                    };
+                }
+            }
+        }
+        return "Unknown";
+    }
+
+    // Метод поворота фигуры по часовой стрелке. Возвращается новый объект TetrisPiece.
+    public TetrisPiece rotate() {
+        int rows = shape.length;
+        int cols = shape[0].length;
+        int[][] rotated = new int[cols][rows];
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                rotated[j][rows - 1 - i] = shape[i][j];
+            }
+        }
+        return new TetrisPiece(rotated);
     }
 }
