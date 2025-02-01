@@ -2,13 +2,7 @@ package ru.alspace.model;
 
 import java.util.Random;
 
-public class TetrisPiece {
-    private final int[][] shape;
-
-    public TetrisPiece(int[][] shape) {
-        this.shape = shape;
-    }
-
+public record TetrisPiece(int[][] shape) {
     // Возвращает случайную фигуру из стандартного набора (I, J, L, O, S, T, Z)
     public static TetrisPiece getRandomPiece(Random random) {
         int r = random.nextInt(7);
@@ -50,10 +44,6 @@ public class TetrisPiece {
             }); // Z
             default -> null;
         };
-    }
-
-    public int[][] getShape() {
-        return shape;
     }
 
     // Метод для получения названия фигуры

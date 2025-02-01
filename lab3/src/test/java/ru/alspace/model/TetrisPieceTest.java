@@ -18,7 +18,7 @@ public class TetrisPieceTest {
                 {1, 1},
                 {1, 0}
         };
-        int[][] rotatedShape = rotated.getShape();
+        int[][] rotatedShape = rotated.shape();
         assertEquals(expected.length, rotatedShape.length, "Rotated shape row count mismatch");
         for (int i = 0; i < expected.length; i++) {
             assertArrayEquals(expected[i], rotatedShape[i], "Row " + i + " mismatch");

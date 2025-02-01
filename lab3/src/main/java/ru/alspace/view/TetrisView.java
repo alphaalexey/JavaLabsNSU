@@ -156,7 +156,7 @@ public class TetrisView extends JFrame {
             // Отрисовка текущей падающей фигуры
             TetrisPiece piece = model.getCurrentPiece();
             if (piece != null) {
-                int[][] shape = piece.getShape();
+                int[][] shape = piece.shape();
                 int pieceX = model.getCurrentX();
                 int pieceY = model.getCurrentY();
                 for (int i = 0; i < shape.length; i++) {

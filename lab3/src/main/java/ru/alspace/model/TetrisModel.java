@@ -120,7 +120,7 @@ public class TetrisModel {
 
     // Проверяем, можно ли разместить фигуру piece с позицией смещения (x,y)
     public boolean canMove(TetrisPiece piece, int x, int y) {
-        int[][] shape = piece.getShape();
+        int[][] shape = piece.shape();
         for (int i = 0; i < shape.length; i++) {
             for (int j = 0; j < shape[i].length; j++) {
                 if (shape[i][j] != 0) {
@@ -140,7 +140,7 @@ public class TetrisModel {
 
     // «Закрепляем» текущую фигуру на игровом поле (переносим значения в массив board)
     private void fixCurrentPiece() {
-        int[][] shape = currentPiece.getShape();
+        int[][] shape = currentPiece.shape();
         for (int i = 0; i < shape.length; i++) {
             for (int j = 0; j < shape[i].length; j++) {
                 if (shape[i][j] != 0) {
