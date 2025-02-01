@@ -17,9 +17,12 @@ public class TetrisView extends JFrame {
 
     // Элементы меню
     private final JMenuItem newGameItem;
+    private final JMenuItem pauseItem;
     private final JMenuItem highScoresItem;
     private final JMenuItem aboutItem;
     private final JMenuItem exitItem;
+
+    private boolean paused = false;
 
     public TetrisView(TetrisModel model) {
         this.model = model;
@@ -51,11 +54,13 @@ public class TetrisView extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         JMenu gameMenu = new JMenu("Game");
         newGameItem = new JMenuItem("New Game");
+        pauseItem = new JMenuItem("Pause/Resume");
         highScoresItem = new JMenuItem("High Scores");
         aboutItem = new JMenuItem("About");
         exitItem = new JMenuItem("Exit");
 
         gameMenu.add(newGameItem);
+        gameMenu.add(pauseItem);
         gameMenu.add(highScoresItem);
         gameMenu.add(aboutItem);
         gameMenu.add(exitItem);
@@ -75,9 +80,18 @@ public class TetrisView extends JFrame {
         repaintTimer.start();
     }
 
+    public void setPaused(boolean paused) {
+        this.paused = paused;
+        gamePanel.repaint();
+    }
+
     // Методы для установки слушателей действий (ActionListener) для элементов меню
     public void addNewGameListener(ActionListener listener) {
         newGameItem.addActionListener(listener);
+    }
+
+    public void addPauseListener(ActionListener listener) {
+        pauseItem.addActionListener(listener);
     }
 
     public void addHighScoresListener(ActionListener listener) {
@@ -172,6 +186,18 @@ public class TetrisView extends JFrame {
                         }
                     }
                 }
+            }
+
+            if (paused) {
+                g.setColor(new Color(0, 0, 0, 150)); // полупрозрачный черный фон
+                g.fillRect(0, 0, getWidth(), getHeight());
+                g.setColor(Color.WHITE);
+                g.setFont(g.getFont().deriveFont(Font.BOLD, 36f));
+                FontMetrics fm = g.getFontMetrics();
+                String message = "Game Paused";
+                int textWidth = fm.stringWidth(message);
+                int textHeight = fm.getHeight();
+                g.drawString(message, (getWidth() - textWidth) / 2, (getHeight() + textHeight) / 2);
             }
         }
 

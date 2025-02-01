@@ -18,6 +18,8 @@ public class TetrisController {
     private Timer gameTimer;
     private final HighScoreManager highScoreManager;
 
+    private boolean paused = false;
+
     public TetrisController(TetrisModel model, TetrisView view) {
         this.model = model;
         this.view = view;
@@ -32,6 +34,11 @@ public class TetrisController {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (model.isGameOver()) return;
+                // Если игра на паузе, игнорируем все клавиши, кроме P для переключения паузы
+                if (paused && e.getKeyCode() != KeyEvent.VK_P) {
+                    logger.debug("Key press ignored because game is paused");
+                    return;
+                }
                 switch (e.getKeyCode()) {
                     case KeyEvent.VK_LEFT:
                         model.moveLeft();
@@ -49,6 +56,14 @@ public class TetrisController {
                         model.moveDown();
                         logger.debug("Down arrow pressed");
                         break;
+                    case KeyEvent.VK_P:
+                        // Переключение паузы по клавише P
+                        if (!paused) {
+                            pauseGame();
+                        } else {
+                            resumeGame();
+                        }
+                        break;
                 }
             }
         });
@@ -61,9 +76,17 @@ public class TetrisController {
             logger.info("New Game menu item selected");
             model.newGame();
             view.requestFocusInWindow();
-            // Запускаем игровой цикл, если игра была завершена
-            if (!gameTimer.isRunning()) {
+            if (gameTimer == null || !gameTimer.isRunning()) {
                 startGameLoop();
+            }
+            // При старте новой игры снимаем паузу
+            paused = false;
+        });
+        view.addPauseListener(e -> {
+            if (!paused) {
+                pauseGame();
+            } else {
+                resumeGame();
             }
         });
         view.addHighScoresListener(e -> {
@@ -72,7 +95,16 @@ public class TetrisController {
             logger.info("High Scores menu item selected");
         });
         view.addAboutListener(e -> {
+            // Если игра не была на паузе до открытия диалога, ставим её на паузу
+            boolean wasPaused = paused;
+            if (!paused) {
+                pauseGame();
+            }
             view.showAboutDialog();
+            // После закрытия About-диалога возобновляем игру, если она не была поставлена на паузу вручную
+            if (!wasPaused) {
+                resumeGame();
+            }
             logger.info("About menu item selected");
         });
         view.addExitListener(e -> {
@@ -84,9 +116,9 @@ public class TetrisController {
     private void startGameLoop() {
         // Таймер игрового цикла – каждые 500 мс фигура опускается на одну строку.
         gameTimer = new Timer(500, e -> {
-            if (!model.isGameOver()) {
+            if (!model.isGameOver() && !paused) {
                 model.moveDown();
-            } else {
+            } else if (model.isGameOver()) {
                 gameTimer.stop();
                 // Сохраняем результат в таблицу рекордов
                 highScoreManager.addScore(model.getScore());
@@ -98,5 +130,23 @@ public class TetrisController {
         });
         gameTimer.start();
         logger.info("Game loop started");
+    }
+
+    private void pauseGame() {
+        if (gameTimer != null && gameTimer.isRunning()) {
+            gameTimer.stop();
+            paused = true;
+            view.setPaused(true);
+            logger.info("Game paused");
+        }
+    }
+
+    private void resumeGame() {
+        if (gameTimer != null && !gameTimer.isRunning() && !model.isGameOver()) {
+            gameTimer.start();
+            paused = false;
+            view.setPaused(false);
+            logger.info("Game resumed");
+        }
     }
 }
