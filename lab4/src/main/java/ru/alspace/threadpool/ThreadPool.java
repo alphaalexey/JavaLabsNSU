@@ -16,9 +16,8 @@ public class ThreadPool {
 
     /**
      * Конструктор ThreadPool с ограниченной очередью.
-     *
      * @param numberOfThreads количество рабочих потоков
-     * @param maxQueueSize    максимальный размер очереди задач
+     * @param maxQueueSize максимальный размер очереди задач
      */
     public ThreadPool(int numberOfThreads, int maxQueueSize) {
         this.maxQueueSize = maxQueueSize;
@@ -31,7 +30,6 @@ public class ThreadPool {
 
     /**
      * Метод submit теперь блокируется, если очередь заполнена.
-     *
      * @param task задача для выполнения
      */
     public void submit(Runnable task) {
@@ -52,14 +50,21 @@ public class ThreadPool {
 
     public void shutdown() {
         running = false;
+        // Очистим очередь, если оставшиеся задачи не критичны
         synchronized (taskQueue) {
+            taskQueue.clear();
             taskQueue.notifyAll();
         }
+        // Прерываем ожидание у рабочих потоков
+        for (Worker worker : workers) {
+            worker.interrupt();
+        }
+        // Ждем завершения рабочих потоков с таймаутом, чтобы не зависнуть
         for (Worker worker : workers) {
             try {
-                worker.join();
+                worker.join(1000); // ждем максимум 1 секунду на каждого
             } catch (InterruptedException e) {
-                // Игнорируем прерывания
+                Thread.currentThread().interrupt();
             }
         }
     }
@@ -80,11 +85,14 @@ public class ThreadPool {
                         try {
                             taskQueue.wait();
                         } catch (InterruptedException e) {
-                            // Игнорируем прерывания
+                            // Если прерывание произошло, проверяем условие цикла
+                            if (!running) {
+                                return;
+                            }
                         }
                     }
                     if (taskQueue.isEmpty()) {
-                        break;
+                        continue;
                     }
                     task = taskQueue.removeFirst();
                     taskQueue.notifyAll(); // уведомляем производителей, что место освободилось
