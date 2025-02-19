@@ -80,6 +80,7 @@ public class TetrisController {
         // Обработка команд из меню
         view.addNewGameListener(e -> {
             logger.info("New Game menu item selected");
+            resumeGame();
             model.newGame();
             view.requestFocusInWindow();
             if (gameTimer == null || !gameTimer.isRunning()) {
