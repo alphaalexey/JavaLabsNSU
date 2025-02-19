@@ -14,6 +14,7 @@ public class TetrisView extends JFrame {
     // Компоненты для отображения текущего счёта и следующей фигуры
     private final JLabel scoreLabel;
     private final JLabel nextPieceLabel;
+    private final JLabel piecesCountLabel;
 
     // Элементы меню
     private final JMenuItem newGameItem;
@@ -42,12 +43,16 @@ public class TetrisView extends JFrame {
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         scoreLabel = new JLabel("Score: 0");
         nextPieceLabel = new JLabel("Next: Unknown");
+        piecesCountLabel = new JLabel("Pieces count: 0");
         scoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         nextPieceLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        piecesCountLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         infoPanel.add(Box.createVerticalStrut(20));
         infoPanel.add(scoreLabel);
         infoPanel.add(Box.createVerticalStrut(20));
         infoPanel.add(nextPieceLabel);
+        infoPanel.add(Box.createVerticalStrut(20));
+        infoPanel.add(piecesCountLabel);
         add(infoPanel, BorderLayout.EAST);
 
         // Настройка меню
@@ -76,6 +81,7 @@ public class TetrisView extends JFrame {
             TetrisPiece next = model.getNextPiece();
             String nextName = (next != null) ? next.getName() : "Unknown";
             nextPieceLabel.setText("Next: " + nextName);
+            piecesCountLabel.setText("Pieces count: " + model.getPiecesPlaced());
         });
         repaintTimer.start();
     }
