@@ -19,7 +19,7 @@ public class DefineCommand extends Command {
         }
 
         String name = args.get(0);
-        if (Character.isDigit(name.charAt(0))) {
+        if (!Character.isAlphabetic(name.charAt(0))) {
             throw new CommandExecutionException("DEFINE: имя не может начинаться с числа");
         }
 
