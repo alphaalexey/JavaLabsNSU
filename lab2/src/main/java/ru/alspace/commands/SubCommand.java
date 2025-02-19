@@ -12,7 +12,7 @@ import java.util.Stack;
  * Снимает со стека 2 числа (a, b), выполняет (a - b).
  * a — это то, что было ниже в стеке, b — верхний элемент.
  */
-public class SubCommand implements Command {
+public class SubCommand extends Command {
     @Override
     public void execute(Context context, List<String> args) throws CommandExecutionException {
         // - не принимает аргументов

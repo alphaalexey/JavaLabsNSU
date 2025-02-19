@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * PUSH <value-or-name>
  */
-public class PushCommand implements Command {
+public class PushCommand extends Command {
     @Override
     public void execute(Context context, List<String> args) throws CommandExecutionException {
         if (args.size() != 1) {

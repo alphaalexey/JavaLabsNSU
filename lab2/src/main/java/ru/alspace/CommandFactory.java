@@ -73,7 +73,7 @@ public class CommandFactory {
             Object instance = clazz.getDeclaredConstructor().newInstance();
 
             if (!(instance instanceof Command)) {
-                throw new RuntimeException("Класс " + className + " не реализует интерфейс Command");
+                throw new RuntimeException("Класс " + className + " не реализует абстрактный класс Command");
             }
 
             return (Command) instance;

@@ -11,7 +11,7 @@ import java.util.Stack;
  * SQRT
  * Снимает со стека 1 число, вычисляет корень, возвращает в стек результат.
  */
-public class SqrtCommand implements Command {
+public class SqrtCommand extends Command {
     @Override
     public void execute(Context context, List<String> args) throws CommandExecutionException {
         // SQRT не принимает аргументов

@@ -3,9 +3,9 @@ package ru.alspace;
 import java.util.List;
 
 /**
- * Общий интерфейс для всех команд калькулятора.
+ * Общий базовый класс для всех команд калькулятора.
  */
-public interface Command {
+public abstract class Command {
     /**
      * Выполняет команду, используя контекст (стек, map) и аргументы.
      *
@@ -13,5 +13,5 @@ public interface Command {
      * @param args    список аргументов (все токены, которые идут после названия команды)
      * @throws CommandExecutionException если при исполнении произошла ошибка
      */
-    void execute(Context context, List<String> args) throws CommandExecutionException;
+    public abstract void execute(Context context, List<String> args) throws CommandExecutionException;
 }

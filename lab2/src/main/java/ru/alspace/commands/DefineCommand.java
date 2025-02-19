@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * DEFINE <name> <value>
  */
-public class DefineCommand implements Command {
+public class DefineCommand extends Command {
     @Override
     public void execute(Context context, List<String> args) throws CommandExecutionException {
         // Нужно ровно 2 аргумента: name, value

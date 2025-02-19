@@ -12,7 +12,7 @@ import java.util.Stack;
  * - без аргументов: снять верхний элемент со стека
  * - c одним аргументом (имя): снять верхний элемент и записать его в defines[имя].
  */
-public class PopCommand implements Command {
+public class PopCommand extends Command {
     @Override
     public void execute(Context context, List<String> args) throws CommandExecutionException {
         // Допускаем 0 или 1 аргумент

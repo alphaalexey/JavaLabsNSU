@@ -11,7 +11,7 @@ import java.util.Stack;
  * +
  * Снимает со стека 2 числа, складывает, результат кладёт в стек.
  */
-public class AddCommand implements Command {
+public class AddCommand extends Command {
     @Override
     public void execute(Context context, List<String> args) throws CommandExecutionException {
         // + не принимает аргументов

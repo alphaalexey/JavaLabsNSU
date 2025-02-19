@@ -11,7 +11,7 @@ import java.util.Stack;
  * PRINT
  * Выводит (System.out) верхний элемент стека (без удаления).
  */
-public class PrintCommand implements Command {
+public class PrintCommand extends Command {
     @Override
     public void execute(Context context, List<String> args) throws CommandExecutionException {
         // PRINT не принимает аргументов

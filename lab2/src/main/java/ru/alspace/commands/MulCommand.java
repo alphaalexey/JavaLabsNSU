@@ -11,7 +11,7 @@ import java.util.Stack;
  * *
  * Снимает со стека 2 числа, перемножает, результат кладёт в стек.
  */
-public class MulCommand implements Command {
+public class MulCommand extends Command {
     @Override
     public void execute(Context context, List<String> args) throws CommandExecutionException {
         // * не принимает аргументов
