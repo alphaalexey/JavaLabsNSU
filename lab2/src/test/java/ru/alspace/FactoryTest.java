@@ -14,7 +14,7 @@ public class FactoryTest {
     @Test
     void testFactoryPush() throws CommandExecutionException {
         CommandFactory factory = new CommandFactory(); // Загрузит commands.properties
-        Command cmd = factory.createCommand("PUSH"); // Должен создать PushCommand
+        Command cmd = factory.getCommand("PUSH"); // Должен создать PushCommand
 
         // Проверим, что cmd — это PushCommand
         assertInstanceOf(PushCommand.class, cmd);

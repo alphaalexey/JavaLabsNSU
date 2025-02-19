@@ -68,7 +68,7 @@ public class Main {
 
                 try {
                     // Создаём команду через фабрику
-                    Command command = factory.createCommand(cmdName.toUpperCase());
+                    Command command = factory.getCommand(cmdName.toUpperCase());
                     // Вызываем execute
                     command.execute(context, cmdArgs);
                 } catch (CommandExecutionException e) {
