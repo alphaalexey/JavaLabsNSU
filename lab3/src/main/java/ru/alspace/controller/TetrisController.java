@@ -13,10 +13,16 @@ import java.awt.event.KeyEvent;
 public class TetrisController {
     private static final Logger logger = LogManager.getLogger(TetrisController.class);
 
+    private static final int DELAY_MIN = 50;
+    private static final int DELAY_MAX = 500;
+    private static final int DELAY_DELTA = 15;
+
     private final TetrisModel model;
     private final TetrisView view;
     private Timer gameTimer;
     private final HighScoreManager highScoreManager;
+
+    private int lastPiecesPlaced = 0;
 
     private boolean paused = false;
 
@@ -115,9 +121,15 @@ public class TetrisController {
 
     private void startGameLoop() {
         // Таймер игрового цикла – каждые 500 мс фигура опускается на одну строку.
-        gameTimer = new Timer(500, e -> {
+        gameTimer = new Timer(DELAY_MAX, e -> {
             if (!model.isGameOver() && !paused) {
                 model.moveDown();
+                if (model.getPiecesPlaced() > lastPiecesPlaced) {
+                    lastPiecesPlaced = model.getPiecesPlaced();
+                    int newDelay = Math.max(DELAY_MIN, DELAY_MAX - lastPiecesPlaced * DELAY_DELTA);
+                    gameTimer.setDelay(newDelay);
+                    logger.info("Game accelerated: new delay = {}", newDelay);
+                }
             } else if (model.isGameOver()) {
                 gameTimer.stop();
                 // Сохраняем результат в таблицу рекордов

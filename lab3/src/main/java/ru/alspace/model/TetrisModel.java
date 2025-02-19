@@ -17,6 +17,7 @@ public class TetrisModel {
     private TetrisPiece nextPiece;
     private int score;
     private boolean gameOver;
+    private int piecesPlaced;
     private final Random random;
 
     public TetrisModel() {
@@ -35,6 +36,7 @@ public class TetrisModel {
         }
         score = 0;
         gameOver = false;
+        piecesPlaced = 0;
         currentPiece = TetrisPiece.getRandomPiece(random);
         // Выравниваем стартовую позицию (учитываем, что фигура может иметь размерность 3x3 или 4x4)
         currentX = BOARD_WIDTH / 2 - 2;
@@ -48,6 +50,10 @@ public class TetrisModel {
 
     public boolean isGameOver() {
         return gameOver;
+    }
+
+    public int getPiecesPlaced() {
+        return piecesPlaced;
     }
 
     public int[][] getBoard() {
@@ -108,6 +114,7 @@ public class TetrisModel {
 
     // Попытка заспавнить следующую фигуру. Если фигуру разместить сразу нельзя – игра окончена.
     private void spawnNextPiece() {
+        piecesPlaced++;
         currentPiece = nextPiece;
         currentX = BOARD_WIDTH / 2 - 2;
         currentY = 0;
