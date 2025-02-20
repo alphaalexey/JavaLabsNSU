@@ -121,7 +121,7 @@ public class TetrisController {
     }
 
     private void startGameLoop() {
-        // Таймер игрового цикла – каждые 500 мс фигура опускается на одну строку.
+        // Таймер игрового цикла – время, за которое фигура опускается на одну строку. Уменьшается со временем
         gameTimer = new Timer(DELAY_MAX, e -> {
             if (!model.isGameOver() && !paused) {
                 model.moveDown();
