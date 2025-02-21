@@ -3,6 +3,7 @@ package ru.alspace.controller;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ru.alspace.HighScoreManager;
+import ru.alspace.model.TetrisDifficulty;
 import ru.alspace.model.TetrisModel;
 import ru.alspace.view.TetrisView;
 
@@ -13,9 +14,8 @@ import java.awt.event.KeyEvent;
 public class TetrisController {
     private static final Logger logger = LogManager.getLogger(TetrisController.class);
 
-    private static final int DELAY_MIN = 50;
-    private static final int DELAY_MAX = 500;
-    private static final int DELAY_DELTA = 15;
+    private TetrisDifficulty currentDifficulty;
+    private TetrisDifficulty nextDifficulty;
 
     private final TetrisModel model;
     private final TetrisView view;
@@ -30,6 +30,8 @@ public class TetrisController {
         this.model = model;
         this.view = view;
         highScoreManager = new HighScoreManager();
+        currentDifficulty = TetrisDifficulty.getDefault();
+        nextDifficulty = TetrisDifficulty.getDefault();
         initController();
         startGameLoop();
     }
@@ -82,6 +84,7 @@ public class TetrisController {
             logger.info("New Game menu item selected");
             resumeGame();
             model.newGame();
+            currentDifficulty = nextDifficulty;
             view.requestFocusInWindow();
             if (gameTimer == null || !gameTimer.isRunning()) {
                 startGameLoop();
@@ -89,6 +92,7 @@ public class TetrisController {
             // При старте новой игры снимаем паузу
             paused = false;
         });
+        view.addDifficultyListener(e -> showDifficultyDialog());
         view.addPauseListener(e -> {
             if (!paused) {
                 pauseGame();
@@ -122,12 +126,13 @@ public class TetrisController {
 
     private void startGameLoop() {
         // Таймер игрового цикла – время, за которое фигура опускается на одну строку. Уменьшается со временем
-        gameTimer = new Timer(DELAY_MAX, e -> {
+        gameTimer = new Timer(currentDifficulty.getInitialDelay(), e -> {
             if (!model.isGameOver() && !paused) {
                 model.moveDown();
                 if (model.getPiecesPlaced() > lastPiecesPlaced) {
                     lastPiecesPlaced = model.getPiecesPlaced();
-                    int newDelay = Math.max(DELAY_MIN, DELAY_MAX - lastPiecesPlaced * DELAY_DELTA);
+                    int newDelay = Math.max(currentDifficulty.getMinDelay(),
+                            currentDifficulty.getInitialDelay() - lastPiecesPlaced * currentDifficulty.getAccelerationDelta());
                     gameTimer.setDelay(newDelay);
                     logger.info("Game accelerated: new delay = {}", newDelay);
                 }
@@ -162,4 +167,24 @@ public class TetrisController {
             logger.info("Game resumed");
         }
     }
+
+    private void showDifficultyDialog() {
+        TetrisDifficulty[] difficulties = TetrisDifficulty.values();
+        TetrisDifficulty selected = (TetrisDifficulty) JOptionPane.showInputDialog(
+                view,
+                "Select Difficulty (applied to the next game):",
+                "Difficulty Settings",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                difficulties,
+                nextDifficulty);
+        if (selected != null) {
+            nextDifficulty = selected;
+            logger.info("Difficulty set to {}: initialDelay={}, accelerationDelta={}",
+                    nextDifficulty.getName(),
+                    nextDifficulty.getInitialDelay(),
+                    nextDifficulty.getAccelerationDelta());
+        }
+    }
+
 }

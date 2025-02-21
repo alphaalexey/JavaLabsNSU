@@ -18,6 +18,7 @@ public class TetrisView extends JFrame {
 
     // Элементы меню
     private final JMenuItem newGameItem;
+    private final JMenuItem difficultyItem;
     private final JMenuItem pauseItem;
     private final JMenuItem highScoresItem;
     private final JMenuItem aboutItem;
@@ -59,12 +60,14 @@ public class TetrisView extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         JMenu gameMenu = new JMenu("Game");
         newGameItem = new JMenuItem("New Game");
+        difficultyItem = new JMenuItem("Difficulty");
         pauseItem = new JMenuItem("Pause/Resume");
         highScoresItem = new JMenuItem("High Scores");
         aboutItem = new JMenuItem("About");
         exitItem = new JMenuItem("Exit");
 
         gameMenu.add(newGameItem);
+        gameMenu.add(difficultyItem);
         gameMenu.add(pauseItem);
         gameMenu.add(highScoresItem);
         gameMenu.add(aboutItem);
@@ -94,6 +97,10 @@ public class TetrisView extends JFrame {
     // Методы для установки слушателей действий (ActionListener) для элементов меню
     public void addNewGameListener(ActionListener listener) {
         newGameItem.addActionListener(listener);
+    }
+
+    public void addDifficultyListener(ActionListener listener) {
+        difficultyItem.addActionListener(listener);
     }
 
     public void addPauseListener(ActionListener listener) {
