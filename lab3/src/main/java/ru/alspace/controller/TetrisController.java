@@ -100,9 +100,9 @@ public class TetrisController {
             }
             // При старте новой игры снимаем паузу
             paused = false;
-            logger.info("New Game menu item selected");
         });
         view.addDifficultyListener(e -> {
+            logger.info("Difficulty menu item selected");
             // Если игра не была на паузе до открытия диалога, ставим её на паузу
             boolean wasPaused = paused;
             if (!paused) {
@@ -113,17 +113,17 @@ public class TetrisController {
             if (!wasPaused) {
                 resumeGame();
             }
-            logger.info("Difficulty menu item selected");
         });
         view.addPauseListener(e -> {
+            logger.info("Pause/Resume menu item selected");
             if (!paused) {
                 pauseGame();
             } else {
                 resumeGame();
             }
-            logger.info("Pause/Resume menu item selected");
         });
         view.addHighScoresListener(e -> {
+            logger.info("High Scores menu item selected");
             // Если игра не была на паузе до открытия диалога, ставим её на паузу
             boolean wasPaused = paused;
             if (!paused) {
@@ -135,9 +135,9 @@ public class TetrisController {
             if (!wasPaused) {
                 resumeGame();
             }
-            logger.info("High Scores menu item selected");
         });
         view.addAboutListener(e -> {
+            logger.info("About menu item selected");
             // Если игра не была на паузе до открытия диалога, ставим её на паузу
             boolean wasPaused = paused;
             if (!paused) {
@@ -148,7 +148,6 @@ public class TetrisController {
             if (!wasPaused) {
                 resumeGame();
             }
-            logger.info("About menu item selected");
         });
         view.addExitListener(e -> {
             logger.info("Exit menu item selected. Exiting application.");
@@ -221,5 +220,4 @@ public class TetrisController {
                     nextDifficulty.getAccelerationDelta());
         }
     }
-
 }
