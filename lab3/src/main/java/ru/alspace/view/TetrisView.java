@@ -1,5 +1,6 @@
 package ru.alspace.view;
 
+import ru.alspace.model.TetrisDifficulty;
 import ru.alspace.model.TetrisModel;
 import ru.alspace.model.TetrisPiece;
 
@@ -15,6 +16,7 @@ public class TetrisView extends JFrame {
     private final JLabel scoreLabel;
     private final JLabel nextPieceLabel;
     private final JLabel piecesCountLabel;
+    private final JLabel difficultyLabel;
 
     // Элементы меню
     private final JMenuItem newGameItem;
@@ -45,15 +47,19 @@ public class TetrisView extends JFrame {
         scoreLabel = new JLabel("Score: 0");
         nextPieceLabel = new JLabel("Next: Unknown");
         piecesCountLabel = new JLabel("Pieces count: 0");
+        difficultyLabel = new JLabel("Difficulty: " + TetrisDifficulty.getDefault().getName());
         scoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         nextPieceLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         piecesCountLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        difficultyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         infoPanel.add(Box.createVerticalStrut(20));
         infoPanel.add(scoreLabel);
         infoPanel.add(Box.createVerticalStrut(20));
         infoPanel.add(nextPieceLabel);
         infoPanel.add(Box.createVerticalStrut(20));
         infoPanel.add(piecesCountLabel);
+        infoPanel.add(Box.createVerticalStrut(20));
+        infoPanel.add(difficultyLabel);
         add(infoPanel, BorderLayout.EAST);
 
         // Настройка меню
@@ -92,6 +98,10 @@ public class TetrisView extends JFrame {
     public void setPaused(boolean paused) {
         this.paused = paused;
         gamePanel.repaint();
+    }
+
+    public void setDifficulty(TetrisDifficulty difficulty) {
+        difficultyLabel.setText("Difficulty: " + difficulty.getName());
     }
 
     // Методы для установки слушателей действий (ActionListener) для элементов меню

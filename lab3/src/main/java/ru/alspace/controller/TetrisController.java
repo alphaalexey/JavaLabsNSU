@@ -85,6 +85,7 @@ public class TetrisController {
             resumeGame();
             model.newGame();
             currentDifficulty = nextDifficulty;
+            view.setDifficulty(currentDifficulty);
             view.requestFocusInWindow();
             if (gameTimer == null || !gameTimer.isRunning()) {
                 startGameLoop();
