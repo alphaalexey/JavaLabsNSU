@@ -11,6 +11,9 @@ public class TetrisModel {
     public static final int BOARD_WIDTH = 10;
     public static final int BOARD_HEIGHT = 20;
 
+    private static final int LINE_POINTS = 100;
+    private static final int TETRIS_BONUS = 400;
+
     private final int[][] board;
     private TetrisPiece currentPiece;
     private int currentX, currentY;
@@ -179,7 +182,11 @@ public class TetrisModel {
                 logger.debug("Cleared line at index {}", i);
             }
         }
-        score += linesCleared * 100;
+        score += linesCleared * LINE_POINTS;
+        if (linesCleared == 4) {
+            score += TETRIS_BONUS;
+            logger.info("Tetris bonus applied: {} bonus points", TETRIS_BONUS);
+        }
         if (linesCleared > 0) {
             logger.info("Cleared {} lines. New score: {}", linesCleared, score);
         }
