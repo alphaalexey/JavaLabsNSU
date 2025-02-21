@@ -92,18 +92,41 @@ public class TetrisController {
             }
             // При старте новой игры снимаем паузу
             paused = false;
+            logger.info("New Game menu item selected");
         });
-        view.addDifficultyListener(e -> showDifficultyDialog());
+        view.addDifficultyListener(e -> {
+            // Если игра не была на паузе до открытия диалога, ставим её на паузу
+            boolean wasPaused = paused;
+            if (!paused) {
+                pauseGame();
+            }
+            showDifficultyDialog();
+            // После закрытия Difficulty-диалога возобновляем игру, если она не была поставлена на паузу вручную
+            if (!wasPaused) {
+                resumeGame();
+            }
+            logger.info("Difficulty menu item selected");
+        });
         view.addPauseListener(e -> {
             if (!paused) {
                 pauseGame();
             } else {
                 resumeGame();
             }
+            logger.info("Pause/Resume menu item selected");
         });
         view.addHighScoresListener(e -> {
+            // Если игра не была на паузе до открытия диалога, ставим её на паузу
+            boolean wasPaused = paused;
+            if (!paused) {
+                pauseGame();
+            }
             String scores = highScoreManager.getHighScores();
             view.showHighScoresDialog(scores);
+            // После закрытия HighScores-диалога возобновляем игру, если она не была поставлена на паузу вручную
+            if (!wasPaused) {
+                resumeGame();
+            }
             logger.info("High Scores menu item selected");
         });
         view.addAboutListener(e -> {
