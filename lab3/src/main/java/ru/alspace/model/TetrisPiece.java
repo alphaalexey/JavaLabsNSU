@@ -3,6 +3,14 @@ package ru.alspace.model;
 import java.util.Random;
 
 public record TetrisPiece(int[][] shape) {
+    public static final int MAX_SIZE = 4;
+
+    public TetrisPiece {
+        if (shape.length > MAX_SIZE) {
+            throw new IllegalArgumentException("shape is too large");
+        }
+    }
+
     // Возвращает случайную фигуру из стандартного набора (I, J, L, O, S, T, Z)
     public static TetrisPiece getRandomPiece(Random random) {
         int r = random.nextInt(7);

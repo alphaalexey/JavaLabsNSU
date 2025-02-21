@@ -14,7 +14,7 @@ public class TetrisView extends JFrame {
 
     // Компоненты для отображения текущего счёта и следующей фигуры
     private final JLabel scoreLabel;
-    private final JLabel nextPieceLabel;
+    private final NextPiecePanel nextPiecePanel;
     private final JLabel piecesCountLabel;
     private final JLabel difficultyLabel;
 
@@ -46,17 +46,22 @@ public class TetrisView extends JFrame {
         infoPanel.setPreferredSize(new Dimension(120, 600));
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         scoreLabel = new JLabel("Score: 0");
-        nextPieceLabel = new JLabel("Next: Unknown");
+        JLabel nextPieceLabel = new JLabel("Next:");
+        nextPiecePanel = new NextPiecePanel();
         piecesCountLabel = new JLabel("Pieces count: 0");
         difficultyLabel = new JLabel("Difficulty: " + TetrisDifficulty.getDefault().getName());
+        nextPiecePanel.setPreferredSize(new Dimension(80, 80));
         scoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         nextPieceLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        nextPiecePanel.setAlignmentX(Component.CENTER_ALIGNMENT);
         piecesCountLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         difficultyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         infoPanel.add(Box.createVerticalStrut(20));
         infoPanel.add(scoreLabel);
         infoPanel.add(Box.createVerticalStrut(20));
         infoPanel.add(nextPieceLabel);
+        infoPanel.add(Box.createVerticalStrut(20));
+        infoPanel.add(nextPiecePanel);
         infoPanel.add(Box.createVerticalStrut(20));
         infoPanel.add(piecesCountLabel);
         infoPanel.add(Box.createVerticalStrut(20));
@@ -88,9 +93,7 @@ public class TetrisView extends JFrame {
             // Обновление метки с текущим счётом
             scoreLabel.setText("Score: " + model.getScore());
             // Обновление метки со следующим типом фигуры
-            TetrisPiece next = model.getNextPiece();
-            String nextName = (next != null) ? next.getName() : "Unknown";
-            nextPieceLabel.setText("Next: " + nextName);
+            nextPiecePanel.repaint();
             piecesCountLabel.setText("Pieces count: " + model.getPiecesPlaced());
         });
         repaintTimer.start();
@@ -150,6 +153,19 @@ public class TetrisView extends JFrame {
 
     public void showGameOverDialog(int score) {
         JOptionPane.showMessageDialog(this, "Game Over!\nYour score: " + score, "Game Over", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private Color getColorForPiece(int id) {
+        return switch (id) {
+            case 1 -> Color.CYAN;    // I
+            case 2 -> Color.BLUE;    // J
+            case 3 -> Color.ORANGE;  // L
+            case 4 -> Color.YELLOW;  // O
+            case 5 -> Color.GREEN;   // S
+            case 6 -> Color.MAGENTA; // T
+            case 7 -> Color.RED;     // Z
+            default -> Color.WHITE;
+        };
     }
 
     // Внутренний класс панели игры, отвечающий за отрисовку игрового поля, фигур и фона-сетки.
@@ -234,19 +250,39 @@ public class TetrisView extends JFrame {
                 g.drawString(message, (getWidth() - textWidth) / 2, (getHeight() + textHeight) / 2);
             }
         }
+    }
 
-        // Метод сопоставления идентификатора фигуры с цветом.
-        private Color getColorForPiece(int id) {
-            return switch (id) {
-                case 1 -> Color.CYAN;    // I
-                case 2 -> Color.BLUE;    // J
-                case 3 -> Color.ORANGE;  // L
-                case 4 -> Color.YELLOW;  // O
-                case 5 -> Color.GREEN;   // S
-                case 6 -> Color.MAGENTA; // T
-                case 7 -> Color.RED;     // Z
-                default -> Color.WHITE;
-            };
+    private class NextPiecePanel extends JPanel {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            TetrisPiece next = model.getNextPiece();
+            if (next == null) {
+                return;
+            }
+            int[][] shape = next.shape();
+            // Определяем размер ячейки, исходя из размера панели
+            int rows = shape.length;
+            int cols = shape[0].length;
+            int size = TetrisPiece.MAX_SIZE;
+            int cellSize = Math.min(getWidth() / size, getHeight() / size);
+            // Центрируем фигуру в панели
+            int totalWidth = cellSize * size;
+            int totalHeight = cellSize * size;
+            int offsetX = (getWidth() - totalWidth) / 2;
+            int offsetY = (getHeight() - totalHeight) / 2;
+            for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < cols; j++) {
+                    if (shape[i][j] != 0) {
+                        g.setColor(getColorForPiece(shape[i][j]));
+                        int x = offsetX + j * cellSize;
+                        int y = offsetY + i * cellSize;
+                        g.fillRect(x, y, cellSize, cellSize);
+                        g.setColor(Color.BLACK);
+                        g.drawRect(x, y, cellSize, cellSize);
+                    }
+                }
+            }
         }
     }
 }
