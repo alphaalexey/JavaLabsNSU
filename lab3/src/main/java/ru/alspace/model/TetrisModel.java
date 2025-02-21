@@ -148,6 +148,21 @@ public class TetrisModel {
         return true;
     }
 
+    // Метод для вычисления Y-координаты, куда упадёт фигура при дропе
+    public int getGhostY() {
+        int ghostY = currentY;
+        while (canMove(currentPiece, currentX, ghostY + 1)) {
+            ghostY++;
+        }
+        return ghostY;
+    }
+
+    // Метод для мгновенного дропа фигуры
+    public void dropPiece() {
+        currentY = getGhostY();
+        moveDown(); // После установки currentY, moveDown() зафиксирует фигуру и запустит spawnNextPiece()
+    }
+
     // «Закрепляем» текущую фигуру на игровом поле (переносим значения в массив board)
     private void fixCurrentPiece() {
         int[][] shape = currentPiece.shape();

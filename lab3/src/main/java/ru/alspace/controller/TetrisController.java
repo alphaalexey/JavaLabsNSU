@@ -67,6 +67,10 @@ public class TetrisController {
                         model.moveDown();
                         logger.debug("Down arrow pressed");
                         break;
+                    case KeyEvent.VK_SPACE:
+                        model.dropPiece();
+                        logger.debug("Hard drop triggered");
+                        break;
                     case KeyEvent.VK_P:
                         // Переключение паузы по клавише P
                         if (!paused) {

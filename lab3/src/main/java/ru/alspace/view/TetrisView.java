@@ -147,6 +147,7 @@ public class TetrisView extends JFrame {
                  - Use LEFT and RIGHT arrow keys to move the piece
                  - Use UP arrow key to rotate the piece
                  - Use DOWN arrow key to speed up the drop
+                 - Use SPACE arrow key for immediate drop
                  - Press 'P' to pause/resume the game""";
         JOptionPane.showMessageDialog(this, message, "About", JOptionPane.INFORMATION_MESSAGE);
     }
