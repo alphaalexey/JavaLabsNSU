@@ -86,17 +86,6 @@ public class TetrisView extends JFrame {
         gameMenu.add(exitItem);
         menuBar.add(gameMenu);
         setJMenuBar(menuBar);
-
-        // Таймер для периодического перерисовывания панели игры и обновления информации
-        Timer repaintTimer = new Timer(50, e -> {
-            gamePanel.repaint();
-            // Обновление метки с текущим счётом
-            scoreLabel.setText("Score: " + model.getScore());
-            // Обновление метки со следующим типом фигуры
-            nextPiecePanel.repaint();
-            piecesCountLabel.setText("Pieces count: " + model.getPiecesPlaced());
-        });
-        repaintTimer.start();
     }
 
     public void setPaused(boolean paused) {
@@ -106,6 +95,18 @@ public class TetrisView extends JFrame {
 
     public void setDifficulty(TetrisDifficulty difficulty) {
         difficultyLabel.setText("Difficulty: " + difficulty.getName());
+    }
+
+    public void updatePanel() {
+        gamePanel.repaint();
+    }
+
+    public void updateInfo() {
+        // Обновление метки с текущим счётом
+        scoreLabel.setText("Score: " + model.getScore());
+        // Обновление метки со следующим типом фигуры
+        nextPiecePanel.repaint();
+        piecesCountLabel.setText("Pieces count: " + model.getPiecesPlaced());
     }
 
     // Методы для установки слушателей действий (ActionListener) для элементов меню

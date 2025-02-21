@@ -53,22 +53,27 @@ public class TetrisController {
                 switch (e.getKeyCode()) {
                     case KeyEvent.VK_LEFT:
                         model.moveLeft();
+                        view.updatePanel();
                         logger.debug("Left arrow pressed");
                         break;
                     case KeyEvent.VK_RIGHT:
                         model.moveRight();
+                        view.updatePanel();
                         logger.debug("Right arrow pressed");
                         break;
                     case KeyEvent.VK_UP:
                         model.rotate();
+                        view.updatePanel();
                         logger.debug("Up arrow pressed for rotation");
                         break;
                     case KeyEvent.VK_DOWN:
                         model.moveDown();
+                        view.updatePanel();
                         logger.debug("Down arrow pressed");
                         break;
                     case KeyEvent.VK_SPACE:
                         model.dropPiece();
+                        view.updatePanel();
                         logger.debug("Hard drop triggered");
                         break;
                     case KeyEvent.VK_P:
@@ -78,6 +83,7 @@ public class TetrisController {
                         } else {
                             resumeGame();
                         }
+                        view.updatePanel();
                         break;
                 }
             }
@@ -178,6 +184,8 @@ public class TetrisController {
                 view.showGameOverDialog(model.getScore());
                 logger.info("Game over. Final score: {}", model.getScore());
             }
+            view.updatePanel();
+            view.updateInfo();
             view.requestFocusInWindow();
         });
         gameTimer.start();
