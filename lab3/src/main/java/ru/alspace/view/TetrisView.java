@@ -33,6 +33,7 @@ public class TetrisView extends JFrame {
         setTitle("Tetris");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(500, 600);
+        setMinimumSize(new Dimension(500, 600));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
