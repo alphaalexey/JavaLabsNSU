@@ -3,6 +3,7 @@ package ru.alspace.controller;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ru.alspace.HighScoreManager;
+import ru.alspace.model.ScoreRecord;
 import ru.alspace.model.TetrisDifficulty;
 import ru.alspace.model.TetrisModel;
 import ru.alspace.view.TetrisView;
@@ -22,6 +23,7 @@ public class TetrisController {
     private Timer gameTimer;
     private final HighScoreManager highScoreManager;
 
+    private long gameStartTime;
     private int lastPiecesPlaced = 0;
 
     private boolean paused = false;
@@ -33,6 +35,7 @@ public class TetrisController {
         currentDifficulty = TetrisDifficulty.getDefault();
         nextDifficulty = TetrisDifficulty.getDefault();
         initController();
+        gameStartTime = System.currentTimeMillis();
         startGameLoop();
     }
 
@@ -84,6 +87,7 @@ public class TetrisController {
             logger.info("New Game menu item selected");
             resumeGame();
             model.newGame();
+            gameStartTime = System.currentTimeMillis();
             currentDifficulty = nextDifficulty;
             view.setDifficulty(currentDifficulty);
             view.requestFocusInWindow();
@@ -163,7 +167,10 @@ public class TetrisController {
             } else if (model.isGameOver()) {
                 gameTimer.stop();
                 // Сохраняем результат в таблицу рекордов
-                highScoreManager.addScore(model.getScore());
+                long gameEndTime = System.currentTimeMillis();
+                long gameTimeMillis = gameEndTime - gameStartTime;
+                logger.info("gameEndTime = {}, gameStartTime = {}, gameTimeMillis = {}", gameEndTime, gameStartTime, gameTimeMillis);
+                highScoreManager.addScore(new ScoreRecord(model.getScore(), currentDifficulty, gameTimeMillis));
                 highScoreManager.saveHighScores();
                 view.showGameOverDialog(model.getScore());
                 logger.info("Game over. Final score: {}", model.getScore());

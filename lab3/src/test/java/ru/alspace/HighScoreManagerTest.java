@@ -2,6 +2,8 @@ package ru.alspace;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import ru.alspace.model.ScoreRecord;
+import ru.alspace.model.TetrisDifficulty;
 
 import java.io.File;
 
@@ -22,11 +24,12 @@ public class HighScoreManagerTest {
     @Test
     void testAddAndRetrieveScores() {
         HighScoreManager manager = new HighScoreManager();
-        manager.addScore(100);
-        manager.addScore(200);
-        manager.addScore(150);
+        // Добавляем несколько записей с разными очками, сложностями и временем игры
+        manager.addScore(new ScoreRecord(100, TetrisDifficulty.NORMAL, 10));
+        manager.addScore(new ScoreRecord(200, TetrisDifficulty.HARD, 15));
+        manager.addScore(new ScoreRecord(150, TetrisDifficulty.EASY, 20));
         String scoresText = manager.getHighScores();
-        // Ожидаем, что самый высокий счёт окажется первым
+        // Проверяем, что самый высокий счёт (200) находится на первом месте, затем 150 и 100
         assertTrue(scoresText.contains("1. 200"), "High score order incorrect");
         assertTrue(scoresText.contains("2. 150"), "High score order incorrect");
         assertTrue(scoresText.contains("3. 100"), "High score order incorrect");
@@ -35,7 +38,7 @@ public class HighScoreManagerTest {
     @Test
     void testSaveAndLoadHighScores() {
         HighScoreManager manager = new HighScoreManager();
-        manager.addScore(300);
+        manager.addScore(new ScoreRecord(300, TetrisDifficulty.NORMAL, 25));
         manager.saveHighScores();
 
         // Создаём новый экземпляр, который должен загрузить сохранённые рекорды
