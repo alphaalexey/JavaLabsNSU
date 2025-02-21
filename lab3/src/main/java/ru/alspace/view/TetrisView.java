@@ -218,6 +218,28 @@ public class TetrisView extends JFrame {
                 }
             }
 
+            // Отрисовка ghost-фигуры (прозрачный образ того, куда упадёт фигура)
+            if (model.getCurrentPiece() != null) {
+                int ghostY = model.getGhostY();
+                int[][] shape = model.getCurrentPiece().shape();
+                Graphics2D g2d = (Graphics2D) g;
+                Composite originalComposite = g2d.getComposite();
+                // Используем 30%-ую непрозрачность для ghost-фигуры
+                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+                for (int i = 0; i < shape.length; i++) {
+                    for (int j = 0; j < shape[i].length; j++) {
+                        if (shape[i][j] != 0) {
+                            int x = offsetX + (int)((model.getCurrentX() + j) * scale);
+                            int y = offsetY + (int)((ghostY + i) * scale);
+                            int cellSize = (int) scale;
+                            g2d.setColor(getColorForPiece(shape[i][j]));
+                            g2d.fillRect(x, y, cellSize, cellSize);
+                        }
+                    }
+                }
+                g2d.setComposite(originalComposite);
+            }
+
             // Отрисовка текущей падающей фигуры
             TetrisPiece piece = model.getCurrentPiece();
             if (piece != null) {
