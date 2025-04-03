@@ -43,7 +43,7 @@ public class TetrisView extends JFrame {
 
         // Инициализация информационной панели
         JPanel infoPanel = new JPanel();
-        infoPanel.setPreferredSize(new Dimension(120, 600));
+        infoPanel.setPreferredSize(new Dimension(200, 600));
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         scoreLabel = new JLabel("Score: 0");
         JLabel nextPieceLabel = new JLabel("Next:");

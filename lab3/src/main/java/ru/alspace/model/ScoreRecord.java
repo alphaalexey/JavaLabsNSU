@@ -7,6 +7,9 @@ public record ScoreRecord(int score, TetrisDifficulty difficulty, long gameTimeI
     public String toString() {
         Duration duration = Duration.ofMillis(gameTimeInMillis);
         return score + " (" + difficulty.getName() + ", " +
-                duration.toHours() + ':' + duration.toMinutesPart() + ':' + duration.toSecondsPart() + '.' + duration.toMillisPart() + ')';
+                String.format("%02d", duration.toHours()) + ':' +
+                String.format("%02d", duration.toMinutesPart()) + ':' +
+                String.format("%02d", duration.toSecondsPart()) + '.' +
+                String.format("%03d", duration.toMillisPart()) + ')';
     }
 }
