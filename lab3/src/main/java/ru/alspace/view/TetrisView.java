@@ -230,8 +230,8 @@ public class TetrisView extends JFrame {
                 for (int i = 0; i < shape.length; i++) {
                     for (int j = 0; j < shape[i].length; j++) {
                         if (shape[i][j] != 0) {
-                            int x = offsetX + (int)((model.getCurrentX() + j) * scale);
-                            int y = offsetY + (int)((ghostY + i) * scale);
+                            int x = offsetX + (int) ((model.getCurrentX() + j) * scale);
+                            int y = offsetY + (int) ((ghostY + i) * scale);
                             int cellSize = (int) scale;
                             g2d.setColor(getColorForPiece(shape[i][j]));
                             g2d.fillRect(x, y, cellSize, cellSize);

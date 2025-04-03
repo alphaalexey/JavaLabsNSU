@@ -16,8 +16,9 @@ public class ThreadPool {
 
     /**
      * Конструктор ThreadPool с ограниченной очередью.
+     *
      * @param numberOfThreads количество рабочих потоков
-     * @param maxQueueSize максимальный размер очереди задач
+     * @param maxQueueSize    максимальный размер очереди задач
      */
     public ThreadPool(int numberOfThreads, int maxQueueSize) {
         this.maxQueueSize = maxQueueSize;
@@ -30,6 +31,7 @@ public class ThreadPool {
 
     /**
      * Метод submit теперь блокируется, если очередь заполнена.
+     *
      * @param task задача для выполнения
      */
     public void submit(Runnable task) {
