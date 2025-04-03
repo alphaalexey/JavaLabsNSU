@@ -3,7 +3,7 @@ package ru.alspace.model;
 import java.util.Random;
 
 public record TetrisPiece(int[][] shape) {
-    public static final int MAX_SIZE = 4;
+    public static final int MAX_SIZE = 6;
 
     public TetrisPiece {
         if (shape.length > MAX_SIZE) {
@@ -86,5 +86,18 @@ public record TetrisPiece(int[][] shape) {
             }
         }
         return new TetrisPiece(rotated);
+    }
+
+    public int getYOffset() {
+        int rows = shape.length;
+        int cols = shape[0].length;
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                if (shape[i][j] != 0) {
+                    return i;
+                }
+            }
+        }
+        return 0; // Пустая фигура
     }
 }

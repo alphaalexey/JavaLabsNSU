@@ -43,7 +43,7 @@ public class TetrisModel {
         currentPiece = TetrisPiece.getRandomPiece(random);
         // Выравниваем стартовую позицию (учитываем, что фигура может иметь размерность 3x3 или 4x4)
         currentX = BOARD_WIDTH / 2 - 2;
-        currentY = 0;
+        currentY = -currentPiece.getYOffset();
         nextPiece = TetrisPiece.getRandomPiece(random);
     }
 
@@ -120,7 +120,7 @@ public class TetrisModel {
         piecesPlaced++;
         currentPiece = nextPiece;
         currentX = BOARD_WIDTH / 2 - 2;
-        currentY = 0;
+        currentY = -currentPiece.getYOffset();
         nextPiece = TetrisPiece.getRandomPiece(random);
         if (!canMove(currentPiece, currentX, currentY)) {
             gameOver = true;
