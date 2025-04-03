@@ -54,27 +54,6 @@ public record TetrisPiece(int[][] shape) {
         };
     }
 
-    // Метод для получения названия фигуры
-    public String getName() {
-        for (int[] ints : shape) {
-            for (int anInt : ints) {
-                if (anInt != 0) {
-                    return switch (anInt) {
-                        case 1 -> "I";
-                        case 2 -> "J";
-                        case 3 -> "L";
-                        case 4 -> "O";
-                        case 5 -> "S";
-                        case 6 -> "T";
-                        case 7 -> "Z";
-                        default -> "Unknown";
-                    };
-                }
-            }
-        }
-        return "Unknown";
-    }
-
     // Метод поворота фигуры по часовой стрелке. Возвращается новый объект TetrisPiece.
     public TetrisPiece rotate() {
         int rows = shape.length;
