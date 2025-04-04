@@ -11,8 +11,8 @@ public class ThreadPool {
 
     private final LinkedList<Runnable> taskQueue = new LinkedList<>();
     private final List<Worker> workers = new LinkedList<>();
-    private volatile boolean running = true;
     private final int maxQueueSize;
+    private volatile boolean running = true;
 
     /**
      * Конструктор ThreadPool с ограниченной очередью.

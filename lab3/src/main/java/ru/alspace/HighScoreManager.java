@@ -11,10 +11,9 @@ import java.util.List;
 
 public class HighScoreManager {
     private static final Logger logger = LogManager.getLogger(HighScoreManager.class);
-
-    private List<ScoreRecord> scores;
     private static final String HIGH_SCORE_FILE = "highscores.txt";
     private static final int MAX_SCORES = 10;
+    private List<ScoreRecord> scores;
 
     public HighScoreManager() {
         scores = new ArrayList<>();

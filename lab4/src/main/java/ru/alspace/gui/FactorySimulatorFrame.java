@@ -23,27 +23,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FactorySimulatorFrame extends JFrame {
     private final Config config;
-
-    // Склады
-    private Storage<Body> bodyStorage;
-    private Storage<Motor> motorStorage;
-    private Storage<Accessory> accessoryStorage;
-    private Storage<Car> carStorage;
-
     // Счётчики
     private final AtomicInteger bodyProduced = new AtomicInteger(0);
     private final AtomicInteger motorProduced = new AtomicInteger(0);
     private final AtomicInteger accessoryProduced = new AtomicInteger(0);
     private final AtomicInteger totalCarsSold = new AtomicInteger(0);
-
+    // Дилеры
+    private final ArrayList<Dealer> dealers = new ArrayList<>();
+    // Склады
+    private Storage<Body> bodyStorage;
+    private Storage<Motor> motorStorage;
+    private Storage<Accessory> accessoryStorage;
+    private Storage<Car> carStorage;
     // Поставщики
     private BodySupplier bodySupplier;
     private MotorSupplier motorSupplier;
     private AccessorySupplier accessorySupplier;
-
-    // Дилеры
-    private final ArrayList<Dealer> dealers = new ArrayList<>();
-
     // Пул сборщиков
     private ThreadPool threadPool;
 

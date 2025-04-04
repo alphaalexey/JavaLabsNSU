@@ -6,9 +6,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class PartSupplier<T> extends Thread {
     protected final Storage<T> storage;
+    protected final AtomicInteger producedCount;
     public long delay; // задержка между поставками (меняется ползунками)
     protected volatile boolean running = true;
-    protected final AtomicInteger producedCount;
 
     public PartSupplier(Storage<T> storage, long delay, AtomicInteger producedCount) {
         this.storage = storage;

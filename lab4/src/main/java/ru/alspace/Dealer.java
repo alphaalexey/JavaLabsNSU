@@ -9,11 +9,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Dealer extends Thread {
     private final int dealerId;
     private final Storage<Car> carStorage;
-    public long delay; // задержка между запросами (изменяется через ползунок)
-    private volatile boolean running = true;
     private final FactoryLogger logger;
     private final AtomicInteger totalSales;
     private final ProductionController controller;
+    public long delay; // задержка между запросами (изменяется через ползунок)
+    private volatile boolean running = true;
 
     public Dealer(int id, Storage<Car> carStorage, long delay, FactoryLogger logger, AtomicInteger totalSales, ProductionController controller) {
         this.dealerId = id;

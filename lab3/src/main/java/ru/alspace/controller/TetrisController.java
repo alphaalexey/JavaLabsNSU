@@ -14,15 +14,12 @@ import java.awt.event.KeyEvent;
 
 public class TetrisController {
     private static final Logger logger = LogManager.getLogger(TetrisController.class);
-
-    private TetrisDifficulty currentDifficulty;
-    private TetrisDifficulty nextDifficulty;
-
     private final TetrisModel model;
     private final TetrisView view;
-    private Timer gameTimer;
     private final HighScoreManager highScoreManager;
-
+    private TetrisDifficulty currentDifficulty;
+    private TetrisDifficulty nextDifficulty;
+    private Timer gameTimer;
     private long gameStartTime;
     private int lastPiecesPlaced = 0;
 

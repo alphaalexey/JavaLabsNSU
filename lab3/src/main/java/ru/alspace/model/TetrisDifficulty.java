@@ -17,6 +17,10 @@ public enum TetrisDifficulty {
         this.minDelay = minDelay;
     }
 
+    public static TetrisDifficulty getDefault() {
+        return NORMAL;
+    }
+
     public String getName() {
         return name;
     }
@@ -36,9 +40,5 @@ public enum TetrisDifficulty {
     @Override
     public String toString() {
         return name;
-    }
-
-    public static TetrisDifficulty getDefault() {
-        return NORMAL;
     }
 }

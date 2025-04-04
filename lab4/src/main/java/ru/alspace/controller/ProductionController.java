@@ -16,10 +16,9 @@ public class ProductionController extends Thread {
     private final Storage<Motor> motorStorage;
     private final Storage<Accessory> accessoryStorage;
     private final Storage<Car> carStorage;
-    private volatile boolean running = true;
-
     // Счётчик задач сборки, которые были запущены, но ещё не завершились
     private final AtomicInteger pendingAssemblyTasks = new AtomicInteger(0);
+    private volatile boolean running = true;
 
     public ProductionController(ThreadPool threadPool, Storage<Body> bodyStorage,
                                 Storage<Motor> motorStorage, Storage<Accessory> accessoryStorage,

@@ -6,22 +6,20 @@ import org.apache.logging.log4j.Logger;
 import java.util.Random;
 
 public class TetrisModel {
-    private static final Logger logger = LogManager.getLogger(TetrisModel.class);
-
     public static final int BOARD_WIDTH = 10;
     public static final int BOARD_HEIGHT = 20;
-
+    private static final Logger logger = LogManager.getLogger(TetrisModel.class);
     private static final int LINE_POINTS = 100;
     private static final int TETRIS_BONUS = 400;
 
     private final int[][] board;
+    private final Random random;
     private TetrisPiece currentPiece;
     private int currentX, currentY;
     private TetrisPiece nextPiece;
     private int score;
     private boolean gameOver;
     private int piecesPlaced;
-    private final Random random;
 
     public TetrisModel() {
         board = new int[BOARD_HEIGHT][BOARD_WIDTH];
