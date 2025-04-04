@@ -8,6 +8,8 @@ import ru.alspace.model.Motor;
 import ru.alspace.storage.Storage;
 import ru.alspace.threadpool.ThreadPool;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class ProductionController extends Thread {
     private final ThreadPool threadPool;
     private final Storage<Body> bodyStorage;
@@ -15,8 +17,9 @@ public class ProductionController extends Thread {
     private final Storage<Accessory> accessoryStorage;
     private final Storage<Car> carStorage;
     private volatile boolean running = true;
-    // Целевой уровень запасов готовых автомобилей (например, 10% от вместимости, минимум 1)
-    private final int targetLevel;
+
+    // Счётчик задач сборки, которые были запущены, но ещё не завершились
+    private final AtomicInteger pendingAssemblyTasks = new AtomicInteger(0);
 
     public ProductionController(ThreadPool threadPool, Storage<Body> bodyStorage,
                                 Storage<Motor> motorStorage, Storage<Accessory> accessoryStorage,
@@ -26,10 +29,9 @@ public class ProductionController extends Thread {
         this.motorStorage = motorStorage;
         this.accessoryStorage = accessoryStorage;
         this.carStorage = carStorage;
-        this.targetLevel = Math.max(1, carStorage.getCapacity() / 10);
     }
 
-    // Вызывается дилерами после продажи автомобиля
+    // Метод для пробуждения контроллера, вызывается дилерами после продажи автомобиля
     public synchronized void notifySale() {
         notify();
     }
@@ -37,17 +39,20 @@ public class ProductionController extends Thread {
     @Override
     public void run() {
         while (running && !Thread.currentThread().isInterrupted()) {
-            // Ждем уведомление от дилеров или таймаут в 1 сек.
+            // Сначала инициируем производство, если есть свободное место на складе
+            int availableSpace = carStorage.getCapacity() - (carStorage.size() + pendingAssemblyTasks.get());
+            while (availableSpace > 0 && running) {
+                pendingAssemblyTasks.incrementAndGet();
+                threadPool.submit(new CarAssemblyTask(bodyStorage, motorStorage, accessoryStorage, carStorage, pendingAssemblyTasks));
+                availableSpace--;
+            }
+            // После запуска доступных задач переходим в режим ожидания уведомлений (например, о продаже)
             synchronized (this) {
                 try {
-                    wait(1000); // пробуждение каждые 1000 мс
+                    wait();
                 } catch (InterruptedException e) {
                     break;
                 }
-            }
-            // Если запас готовых машин ниже целевого, добавляем задачи сборки
-            while (carStorage.size() < targetLevel) {
-                threadPool.submit(new CarAssemblyTask(bodyStorage, motorStorage, accessoryStorage, carStorage));
             }
         }
     }

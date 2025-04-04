@@ -6,18 +6,23 @@ import ru.alspace.model.Car;
 import ru.alspace.model.Motor;
 import ru.alspace.storage.Storage;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class CarAssemblyTask implements Runnable {
     private final Storage<Body> bodyStorage;
     private final Storage<Motor> motorStorage;
     private final Storage<Accessory> accessoryStorage;
     private final Storage<Car> carStorage;
+    private final AtomicInteger pendingAssemblyTasks;
 
     public CarAssemblyTask(Storage<Body> bodyStorage, Storage<Motor> motorStorage,
-                           Storage<Accessory> accessoryStorage, Storage<Car> carStorage) {
+                           Storage<Accessory> accessoryStorage, Storage<Car> carStorage,
+                           AtomicInteger pendingAssemblyTasks) {
         this.bodyStorage = bodyStorage;
         this.motorStorage = motorStorage;
         this.accessoryStorage = accessoryStorage;
         this.carStorage = carStorage;
+        this.pendingAssemblyTasks = pendingAssemblyTasks;
     }
 
     @Override
@@ -33,6 +38,9 @@ public class CarAssemblyTask implements Runnable {
             carStorage.put(car);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } finally {
+            // После завершения сборки уменьшаем счётчик ожидающих задач
+            pendingAssemblyTasks.decrementAndGet();
         }
     }
 }
