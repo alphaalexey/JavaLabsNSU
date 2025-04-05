@@ -41,7 +41,6 @@ public class ProductionController extends Thread {
             // Сначала инициируем производство, если есть свободное место на складе
             int availableSpace = carStorage.getCapacity() - (carStorage.size() + pendingAssemblyTasks.get());
             while (availableSpace > 0 && running) {
-                pendingAssemblyTasks.incrementAndGet();
                 threadPool.submit(new CarAssemblyTask(bodyStorage, motorStorage, accessoryStorage, carStorage, pendingAssemblyTasks));
                 availableSpace--;
             }

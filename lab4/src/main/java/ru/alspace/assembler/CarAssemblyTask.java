@@ -23,6 +23,8 @@ public class CarAssemblyTask implements Runnable {
         this.accessoryStorage = accessoryStorage;
         this.carStorage = carStorage;
         this.pendingAssemblyTasks = pendingAssemblyTasks;
+
+        pendingAssemblyTasks.incrementAndGet();
     }
 
     @Override
