@@ -20,15 +20,13 @@ import java.nio.charset.StandardCharsets;
 
 public class ChatClient extends JFrame {
     private static final Logger logger = LogManager.getLogger(ChatClient.class);
-
+    private final String userName;
+    private Socket socket;
     private JTextArea chatArea;
     private JTextField inputField;
-    private JButton sendButton;
-    private Socket socket;
     private DataInputStream dataIn;
     private DataOutputStream dataOut;
     private String sessionId;
-    private final String userName;
 
     public ChatClient(String host, int port, String userName) {
         this.userName = userName;
@@ -54,7 +52,7 @@ public class ChatClient extends JFrame {
         chatArea = new JTextArea();
         chatArea.setEditable(false);
         inputField = new JTextField();
-        sendButton = new JButton("Отправить");
+        JButton sendButton = new JButton("Отправить");
 
         sendButton.addActionListener((ActionEvent e) -> sendMessage());
 
@@ -95,7 +93,9 @@ public class ChatClient extends JFrame {
 
     // Простейшая функция экранирования спецсимволов XML
     private String escapeXml(String s) {
-        if (s == null) return "";
+        if (s == null) {
+            return "";
+        }
         return s.replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
@@ -116,7 +116,7 @@ public class ChatClient extends JFrame {
         try {
             int length = dataIn.readInt();
             if (length <= 0 || length > 10_000) {
-                logger.warn("Получена некорректная длина сообщения: " + length);
+                logger.warn("Получена некорректная длина сообщения: {}", length);
                 return null;
             }
             byte[] data = new byte[length];
@@ -127,21 +127,6 @@ public class ChatClient extends JFrame {
         } catch (Exception e) {
             logger.error("Ошибка чтения XML документа", e);
             return null;
-        }
-    }
-
-    // Поток для чтения входящих сообщений
-    private class IncomingReader implements Runnable {
-        public void run() {
-            try {
-                while (true) {
-                    Document doc = safeReadXmlDocument();
-                    if (doc == null) continue;
-                    processXmlDocument(doc);
-                }
-            } catch (Exception e) {
-                logger.error("Ошибка чтения сообщений", e);
-            }
         }
     }
 
@@ -202,5 +187,22 @@ public class ChatClient extends JFrame {
 
     private void appendChat(String message) {
         SwingUtilities.invokeLater(() -> chatArea.append(message + "\n"));
+    }
+
+    // Поток для чтения входящих сообщений
+    private class IncomingReader implements Runnable {
+        public void run() {
+            try {
+                while (true) {
+                    Document doc = safeReadXmlDocument();
+                    if (doc == null) {
+                        continue;
+                    }
+                    processXmlDocument(doc);
+                }
+            } catch (Exception e) {
+                logger.error("Ошибка чтения сообщений", e);
+            }
+        }
     }
 }

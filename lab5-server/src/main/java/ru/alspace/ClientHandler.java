@@ -57,17 +57,19 @@ public class ClientHandler implements Runnable {
 
     private void processSerialization() {
         // Реализацию можно выполнить аналогично XML-версии, используя объекты.
+        // TODO: implement
     }
 
     private void processXml() {
         try {
             // Пытаемся прочитать и обработать команду login
             Document loginDoc = safeReadXmlDocument();
-            if (loginDoc == null) return; // если не удалось прочитать, завершаем обработку
+            if (loginDoc == null) {
+                return; // если не удалось прочитать, завершаем обработку
+            }
 
             Element root = loginDoc.getDocumentElement();
-            if (root == null || !"command".equals(root.getNodeName()) ||
-                    !"login".equals(root.getAttribute("name"))) {
+            if (root == null || !"command".equals(root.getNodeName()) || !"login".equals(root.getAttribute("name"))) {
                 sendXmlError("Ожидалась команда login");
                 return;
             }
@@ -93,7 +95,9 @@ public class ClientHandler implements Runnable {
             label:
             while (true) {
                 Document doc = safeReadXmlDocument();
-                if (doc == null) break; // если не удалось прочитать документ, завершаем сессию
+                if (doc == null) {
+                    break; // если не удалось прочитать документ, завершаем сессию
+                }
 
                 try {
                     Element cmd = doc.getDocumentElement();

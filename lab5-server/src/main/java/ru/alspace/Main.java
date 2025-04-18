@@ -16,7 +16,7 @@ public class Main {
             System.exit(1);
             return;
         }
-        boolean useSerialization = false; // false – XML, true – объектная сериализация
+        boolean useSerialization = false; // false - XML, true - объектная сериализация
         ChatServer server = new ChatServer(port, useSerialization);
         server.start();
     }
