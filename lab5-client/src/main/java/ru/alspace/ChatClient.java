@@ -54,6 +54,7 @@ public class ChatClient extends JFrame {
         inputField = new JTextField();
         JButton sendButton = new JButton("Отправить");
 
+        inputField.addActionListener((ActionEvent e) -> sendMessage());
         sendButton.addActionListener((ActionEvent e) -> sendMessage());
 
         JPanel panel = new JPanel(new BorderLayout());
@@ -202,6 +203,7 @@ public class ChatClient extends JFrame {
                 }
             } catch (Exception e) {
                 logger.error("Ошибка чтения сообщений", e);
+                System.exit(1);
             }
         }
     }
