@@ -20,13 +20,17 @@ import ru.alspace.common.model.response.UserListResponse;
 import javax.swing.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.*;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ChatClient extends JFrame {
     private static final Logger logger = LogManager.getLogger(ChatClient.class);
@@ -38,10 +42,10 @@ public class ChatClient extends JFrame {
     private final DefaultListModel<String> userListModel = new DefaultListModel<>();
     private final JList<String> userList = new JList<>(userListModel);
     private Socket socket;
-    // XML
+    // XML streams
     private DataInputStream dataIn;
     private DataOutputStream dataOut;
-    // Serialization
+    // Serialization streams
     private ObjectInputStream objIn;
     private ObjectOutputStream objOut;
     private String sessionId;
@@ -73,14 +77,6 @@ public class ChatClient extends JFrame {
             JOptionPane.showMessageDialog(this, "Cannot connect", "Error", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
-    }
-
-    private static String escapeXml(String s) {
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
     }
 
     private void initUI() {
@@ -116,9 +112,10 @@ public class ChatClient extends JFrame {
                     sessionId = id;
                 }
             } else {
-                String xml = "<command name=\"login\"><name>" + escapeXml(userName)
-                        + "</name><type>SWING_CLIENT</type></command>";
-                sendXml(xml);
+                sendCommand("login", Map.of(
+                        "name", userName,
+                        "type", "SWING_CLIENT"
+                ));
                 Document d = readXml();
                 assert d != null;
 
@@ -143,9 +140,9 @@ public class ChatClient extends JFrame {
                     updateUserList(users);
                 }
             } else {
-                // шлём XML-запрос
-                String xml = "<command name=\"list\"><session>" + sessionId + "</session></command>";
-                sendXml(xml);
+                sendCommand("list", Map.of(
+                        "session", sessionId
+                ));
                 Document doc = readXml();
                 if (doc == null) return;
 
@@ -178,8 +175,9 @@ public class ChatClient extends JFrame {
                     history.forEach(m -> appendChat(m.fromUser() + ": " + m.text()));
                 }
             } else {
-                String xml = "<command name=\"history\"><session>" + sessionId + "</session></command>";
-                sendXml(xml);
+                sendCommand("history", Map.of(
+                        "session", sessionId
+                ));
                 Document d = readXml();
                 assert d != null;
                 NodeList nm = d.getElementsByTagName("message");
@@ -204,10 +202,10 @@ public class ChatClient extends JFrame {
                 objOut.writeObject(new MessageCommand(sessionId, txt));
                 objOut.flush();
             } else {
-                String xml = "<command name=\"message\"><session>" + sessionId
-                        + "</session><message>" + escapeXml(txt)
-                        + "</message></command>";
-                sendXml(xml);
+                sendCommand("message", Map.of(
+                        "session", sessionId,
+                        "message", txt
+                ));
             }
         } catch (Exception e) {
             logger.error("Send msg error", e);
@@ -247,7 +245,7 @@ public class ChatClient extends JFrame {
                         }
                         case "userlogout" -> {
                             String u = r.getElementsByTagName("name").item(0).getTextContent();
-                            userListModel.removeElement(u);
+                            removeUserFromUserList(u);
                             appendChat(u + " покинул чат");
                         }
                         case "history" -> {
@@ -265,12 +263,29 @@ public class ChatClient extends JFrame {
         }
     }
 
-    // --- XML helpers ---
-    private void sendXml(String xml) throws IOException {
-        byte[] data = xml.getBytes(StandardCharsets.UTF_8);
+    // XML helpers
+    private void sendXmlDocument(Document doc) throws Exception {
+        Transformer tf = TransformerFactory.newInstance().newTransformer();
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        tf.transform(new DOMSource(doc), new StreamResult(bout));
+        byte[] data = bout.toByteArray();
         dataOut.writeInt(data.length);
         dataOut.write(data);
         dataOut.flush();
+    }
+
+    private void sendCommand(String name, Map<String, String> elements) throws Exception {
+        DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        Document doc = db.newDocument();
+        Element cmd = doc.createElement("command");
+        cmd.setAttribute("name", name);
+        doc.appendChild(cmd);
+        for (var e : elements.entrySet()) {
+            Element el = doc.createElement(e.getKey());
+            el.setTextContent(e.getValue());
+            cmd.appendChild(el);
+        }
+        sendXmlDocument(doc);
     }
 
     private Document readXml() {
