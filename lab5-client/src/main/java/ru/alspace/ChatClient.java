@@ -13,6 +13,7 @@ import ru.alspace.common.model.data.ChatMessage;
 import ru.alspace.common.model.event.MessageEvent;
 import ru.alspace.common.model.event.UserLoginEvent;
 import ru.alspace.common.model.event.UserLogoutEvent;
+import ru.alspace.common.model.response.ErrorResponse;
 import ru.alspace.common.model.response.HistoryResponse;
 import ru.alspace.common.model.response.SuccessResponse;
 import ru.alspace.common.model.response.UserListResponse;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ChatClient extends JFrame {
+    private static final String CLIENT_ID = "SWING_CLIENT";
     private static final Logger logger = LogManager.getLogger(ChatClient.class);
 
     private final String userName;
@@ -64,7 +66,12 @@ public class ChatClient extends JFrame {
             socket = new Socket(host, port);
             if (useSerialization) {
                 objOut = new ObjectOutputStream(socket.getOutputStream());
-                objIn = new ObjectInputStream(socket.getInputStream());
+                try {
+                    objIn = new ObjectInputStream(socket.getInputStream());
+                } catch (IOException ex) {
+                    showProtocolError("Сервер работает на XML-протоколе. Перезапустите с XML.");
+                    return;
+                }
             } else {
                 dataOut = new DataOutputStream(socket.getOutputStream());
                 dataIn = new DataInputStream(socket.getInputStream());
@@ -72,9 +79,9 @@ public class ChatClient extends JFrame {
             sendLogin();
             new Thread(this::incomingLoop).start();
             inputField.requestFocusInWindow();
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Connect error", e);
-            JOptionPane.showMessageDialog(this, "Cannot connect", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Cannot connect to server.", "Connection Error", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
     }
@@ -94,6 +101,7 @@ public class ChatClient extends JFrame {
         JButton sendBtn = new JButton("Send");
         sendBtn.addActionListener((ActionEvent e) -> sendMessage());
         getRootPane().setDefaultButton(sendBtn);
+
         JPanel bottom = new JPanel(new BorderLayout(5, 5));
         bottom.add(inputField, BorderLayout.CENTER);
         bottom.add(sendBtn, BorderLayout.EAST);
@@ -102,30 +110,38 @@ public class ChatClient extends JFrame {
         getContentPane().add(bottom, BorderLayout.SOUTH);
     }
 
+    private void showProtocolError(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "Protocol mismatch", JOptionPane.ERROR_MESSAGE);
+        System.exit(1);
+    }
+
     private void sendLogin() {
-        try {
-            if (useSerialization) {
-                objOut.writeObject(new LoginCommand(userName, "SWING_CLIENT"));
+        if (useSerialization) {
+            try {
+                objOut.writeObject(new LoginCommand(userName, CLIENT_ID));
                 objOut.flush();
                 Object resp = objIn.readObject();
                 if (resp instanceof SuccessResponse(String id)) {
                     sessionId = id;
+                } else if (resp instanceof ErrorResponse(String message)) {
+                    showProtocolError(message);
                 }
-            } else {
-                sendCommand("login", Map.of(
-                        "name", userName,
-                        "type", "SWING_CLIENT"
-                ));
-                Document d = readXml();
-                assert d != null;
-
-                sessionId = d.getElementsByTagName("session").item(0).getTextContent();
+            } catch (Exception ex) {
+                showProtocolError("Сервер ожидает XML-протокол. Перезапустите клиент с XML.");
             }
-            // after login request user list & history
+        } else {
+            try {
+                sendCommand("login", Map.of("name", userName, "type", CLIENT_ID));
+                Document d = readXml();
+                if (d == null) throw new IOException();
+                sessionId = d.getElementsByTagName("session").item(0).getTextContent();
+            } catch (Exception ex) {
+                showProtocolError("Сервер ожидает сериализацию. Перезапустите клиент с Serialization.");
+            }
+        }
+        if (sessionId != null) {
             sendList();
             sendHistory();
-        } catch (Exception e) {
-            logger.error("Login error", e);
         }
     }
 
@@ -140,9 +156,7 @@ public class ChatClient extends JFrame {
                     updateUserList(users);
                 }
             } else {
-                sendCommand("list", Map.of(
-                        "session", sessionId
-                ));
+                sendCommand("list", Map.of("session", sessionId));
                 Document doc = readXml();
                 if (doc == null) return;
 
@@ -151,10 +165,7 @@ public class ChatClient extends JFrame {
                 NodeList userElems = doc.getElementsByTagName("user");
                 for (int i = 0; i < userElems.getLength(); i++) {
                     Element ue = (Element) userElems.item(i);
-                    String name = ue.getElementsByTagName("name")
-                            .item(0)
-                            .getTextContent()
-                            .trim();
+                    String name = ue.getElementsByTagName("name").item(0).getTextContent().trim();
                     users.add(name);
                 }
                 // один вызов — одно полное обновление модели
@@ -175,9 +186,7 @@ public class ChatClient extends JFrame {
                     history.forEach(m -> appendChat(m.fromUser() + ": " + m.text()));
                 }
             } else {
-                sendCommand("history", Map.of(
-                        "session", sessionId
-                ));
+                sendCommand("history", Map.of("session", sessionId));
                 Document d = readXml();
                 assert d != null;
                 NodeList nm = d.getElementsByTagName("message");
@@ -202,10 +211,7 @@ public class ChatClient extends JFrame {
                 objOut.writeObject(new MessageCommand(sessionId, txt));
                 objOut.flush();
             } else {
-                sendCommand("message", Map.of(
-                        "session", sessionId,
-                        "message", txt
-                ));
+                sendCommand("message", Map.of("session", sessionId, "message", txt));
             }
         } catch (Exception e) {
             logger.error("Send msg error", e);
