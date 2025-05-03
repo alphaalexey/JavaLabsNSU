@@ -2,18 +2,24 @@ package ru.alspace;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import ru.alspace.common.model.data.ChatMessage;
+import ru.alspace.common.model.event.MessageEvent;
+import ru.alspace.common.model.event.UserLoginEvent;
+import ru.alspace.common.model.event.UserLogoutEvent;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.Instant;
 import java.util.*;
 
 public class ChatServer {
     private static final Logger logger = LogManager.getLogger(ChatServer.class);
+
     private final int port;
-    private final boolean useSerialization; // true – использовать сериализацию, false – XML
-    // Храним активные сессии (ключ – уникальный sessionId)
+    private final boolean useSerialization;
     private final Map<String, ClientHandler> clients = Collections.synchronizedMap(new HashMap<>());
+    private final List<ChatMessage> history = Collections.synchronizedList(new ArrayList<>());
 
     public ChatServer(int port, boolean useSerialization) {
         this.port = port;
@@ -21,26 +27,22 @@ public class ChatServer {
     }
 
     public void start() {
-        logger.info("Запуск сервера на порту: {}", port);
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
+        logger.info("Starting server on port {} (serialization={})", port, useSerialization);
+        try (ServerSocket ss = new ServerSocket(port)) {
             while (true) {
-                Socket clientSocket = serverSocket.accept();
-                logger.info("Подключился клиент: {}", clientSocket.getInetAddress());
-                ClientHandler handler = new ClientHandler(clientSocket, this, useSerialization);
-                new Thread(handler).start();
+                Socket sock = ss.accept();
+                logger.info("Client connected: {}", sock.getInetAddress());
+                new Thread(new ClientHandler(sock, this, useSerialization)).start();
             }
         } catch (IOException e) {
-            logger.error("Ошибка сервера", e);
+            logger.error("Server error", e);
         }
     }
 
-    // Регистрация клиента (по sessionId)
-    public synchronized boolean registerClient(String sessionId, ClientHandler clientHandler) {
-        if (clients.containsKey(sessionId)) {
-            return false;
-        }
-        clients.put(sessionId, clientHandler);
-        broadcastUserLogin(clientHandler.getUserName());
+    public synchronized boolean registerClient(String sessionId, ClientHandler handler) {
+        if (clients.containsKey(sessionId)) return false;
+        clients.put(sessionId, handler);
+        broadcastUserLogin(handler.getUserName());
         return true;
     }
 
@@ -49,32 +51,54 @@ public class ChatServer {
         broadcastUserLogout(userName);
     }
 
-    // Отправка сообщения всем подключённым клиентам
-    public synchronized void broadcastMessage(String message, String fromUser) {
-        for (ClientHandler client : clients.values()) {
-            client.sendChatMessage(fromUser, message);
-        }
-    }
-
     public synchronized List<String> getUserList() {
-        List<String> users = new ArrayList<>();
-        for (ClientHandler client : clients.values()) {
-            users.add(client.getUserName());
-        }
-        return users;
+        List<String> list = new ArrayList<>();
+        for (ClientHandler c : clients.values()) list.add(c.getUserName());
+        return list;
     }
 
-    // Рассылка события о входе нового клиента
-    private void broadcastUserLogin(String userName) {
-        for (ClientHandler client : clients.values()) {
-            client.sendUserLoginEvent(userName);
+    public synchronized List<ChatMessage> getHistory() {
+        return new ArrayList<>(history);
+    }
+
+    // --- broadcast methods ---
+
+    public synchronized void broadcastMessage(String from, String msg) {
+        // сохраняем в историю
+        history.add(new ChatMessage(from, msg, Instant.now()));
+
+        for (ClientHandler c : clients.values()) {
+            if (useSerialization) {
+                // для сериализованных клиентов: отправляем Event
+                c.sendChatEvent(new MessageEvent(from, msg));
+            } else {
+                // для XML-клиентов: специальный метод
+                c.sendXmlChatMessage(from, msg);
+            }
         }
     }
 
-    // Рассылка события об отключении клиента
-    private void broadcastUserLogout(String userName) {
-        for (ClientHandler client : clients.values()) {
-            client.sendUserLogoutEvent(userName);
+    private synchronized void broadcastUserLogin(String user) {
+        for (ClientHandler c : clients.values()) {
+            // не шлём событие самому залогинившемуся
+            if (user.equals(c.getUserName())) {
+                continue;
+            }
+            if (useSerialization) {
+                c.sendChatEvent(new UserLoginEvent(user));
+            } else {
+                c.sendXmlUserLoginEvent(user);
+            }
+        }
+    }
+
+    private synchronized void broadcastUserLogout(String user) {
+        for (ClientHandler c : clients.values()) {
+            if (useSerialization) {
+                c.sendChatEvent(new UserLogoutEvent(user));
+            } else {
+                c.sendXmlUserLogoutEvent(user);
+            }
         }
     }
 }

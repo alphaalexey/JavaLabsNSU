@@ -5,98 +5,75 @@ import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import ru.alspace.common.model.command.HistoryCommand;
+import ru.alspace.common.model.command.ListCommand;
+import ru.alspace.common.model.command.LoginCommand;
+import ru.alspace.common.model.command.MessageCommand;
+import ru.alspace.common.model.data.ChatMessage;
+import ru.alspace.common.model.event.MessageEvent;
+import ru.alspace.common.model.event.UserLoginEvent;
+import ru.alspace.common.model.event.UserLogoutEvent;
+import ru.alspace.common.model.response.HistoryResponse;
+import ru.alspace.common.model.response.SuccessResponse;
+import ru.alspace.common.model.response.UserListResponse;
 
 import javax.swing.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ChatClient extends JFrame {
     private static final Logger logger = LogManager.getLogger(ChatClient.class);
+
     private final String userName;
+    private final boolean useSerialization;
+    private final JTextArea chatArea = new JTextArea();
+    private final JTextField inputField = new JTextField();
+    private final DefaultListModel<String> userListModel = new DefaultListModel<>();
+    private final JList<String> userList = new JList<>(userListModel);
     private Socket socket;
-    private JTextArea chatArea;
-    private JTextField inputField;
+    // XML
     private DataInputStream dataIn;
     private DataOutputStream dataOut;
+    // Serialization
+    private ObjectInputStream objIn;
+    private ObjectOutputStream objOut;
     private String sessionId;
 
-    public ChatClient(String host, int port, String userName) {
+    public ChatClient(String host, int port, String userName, boolean useSerialization) {
         this.userName = userName;
-        setTitle("Чат клиент - " + userName);
-        setSize(500, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.useSerialization = useSerialization;
+
+        setTitle("Чат - " + userName + (useSerialization ? " [SER]" : " [XML]"));
+        setSize(600, 400);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         initUI();
 
         try {
             socket = new Socket(host, port);
-            dataIn = new DataInputStream(socket.getInputStream());
-            dataOut = new DataOutputStream(socket.getOutputStream());
-            sendLogin(); // Отправляем команду логина
-            new Thread(new IncomingReader()).start(); // Поток для чтения сообщений
+            if (useSerialization) {
+                objOut = new ObjectOutputStream(socket.getOutputStream());
+                objIn = new ObjectInputStream(socket.getInputStream());
+            } else {
+                dataOut = new DataOutputStream(socket.getOutputStream());
+                dataIn = new DataInputStream(socket.getInputStream());
+            }
+            sendLogin();
+            new Thread(this::incomingLoop).start();
         } catch (IOException e) {
-            logger.error("Ошибка подключения к серверу", e);
-            JOptionPane.showMessageDialog(this, "Ошибка подключения к серверу", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            logger.error("Connect error", e);
+            JOptionPane.showMessageDialog(this, "Cannot connect", "Error", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
     }
 
-    private void initUI() {
-        chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        inputField = new JTextField();
-        JButton sendButton = new JButton("Отправить");
-
-        inputField.addActionListener((ActionEvent e) -> sendMessage());
-        sendButton.addActionListener((ActionEvent e) -> sendMessage());
-
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(inputField, BorderLayout.CENTER);
-        panel.add(sendButton, BorderLayout.EAST);
-
-        getContentPane().add(new JScrollPane(chatArea), BorderLayout.CENTER);
-        getContentPane().add(panel, BorderLayout.SOUTH);
-    }
-
-    private void sendLogin() {
-        try {
-            String xml = "<command name=\"login\">" +
-                    "<name>" + escapeXml(userName) + "</name>" +
-                    "<type>SWING_CLIENT</type>" +
-                    "</command>";
-            sendXmlMessage(xml);
-        } catch (Exception e) {
-            logger.error("Ошибка отправки команды логина", e);
-        }
-    }
-
-    private void sendMessage() {
-        try {
-            String text = inputField.getText().trim();
-            if (text.isEmpty()) return;
-            String xml = "<command name=\"message\">" +
-                    "<message>" + escapeXml(text) + "</message>" +
-                    "<session>" + escapeXml(sessionId) + "</session>" +
-                    "</command>";
-            sendXmlMessage(xml);
-            inputField.setText("");
-        } catch (Exception e) {
-            logger.error("Ошибка отправки сообщения", e);
-        }
-    }
-
-    // Простейшая функция экранирования спецсимволов XML
-    private String escapeXml(String s) {
-        if (s == null) {
-            return "";
-        }
+    private static String escapeXml(String s) {
         return s.replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
@@ -104,107 +81,228 @@ public class ChatClient extends JFrame {
                 .replace("'", "&apos;");
     }
 
-    // Отправка XML-сообщения с префиксом длины
-    private void sendXmlMessage(String xmlString) throws Exception {
-        byte[] data = xmlString.getBytes(StandardCharsets.UTF_8);
+    private void initUI() {
+        chatArea.setEditable(false);
+
+        JButton sendBtn = new JButton("Send");
+        sendBtn.addActionListener((ActionEvent e) -> sendMessage());
+
+        inputField.addActionListener(e -> sendMessage());
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.add(inputField, BorderLayout.CENTER);
+        bottom.add(sendBtn, BorderLayout.EAST);
+
+        JScrollPane chatScroll = new JScrollPane(chatArea);
+        JScrollPane userScroll = new JScrollPane(userList);
+        userScroll.setPreferredSize(new Dimension(120, 0));
+
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, userScroll, chatScroll);
+        split.setDividerLocation(120);
+
+        getContentPane().add(split, BorderLayout.CENTER);
+        getContentPane().add(bottom, BorderLayout.SOUTH);
+    }
+
+    private void sendLogin() {
+        try {
+            if (useSerialization) {
+                objOut.writeObject(new LoginCommand(userName, "SWING_CLIENT"));
+                objOut.flush();
+                Object resp = objIn.readObject();
+                if (resp instanceof SuccessResponse(String id)) {
+                    sessionId = id;
+                }
+            } else {
+                String xml = "<command name=\"login\"><name>" + escapeXml(userName)
+                        + "</name><type>SWING_CLIENT</type></command>";
+                sendXml(xml);
+                Document d = readXml();
+                assert d != null;
+
+                sessionId = d.getElementsByTagName("session").item(0).getTextContent();
+            }
+            // after login request user list & history
+            sendList();
+            sendHistory();
+        } catch (Exception e) {
+            logger.error("Login error", e);
+        }
+    }
+
+    private void sendList() {
+        try {
+            if (useSerialization) {
+                objOut.writeObject(new ListCommand(sessionId));
+                objOut.flush();
+                Object resp = objIn.readObject();
+                if (resp instanceof UserListResponse(List<String> users)) {
+                    // прямо обновляем список всех юзеров
+                    updateUserList(users);
+                }
+            } else {
+                // шлём XML-запрос
+                String xml = "<command name=\"list\">"
+                        + "<session>" + sessionId + "</session>"
+                        + "</command>";
+                sendXml(xml);
+                Document doc = readXml();
+                if (doc == null) return;
+
+                // собираем ВСЕ имена в один список
+                List<String> users = new ArrayList<>();
+                NodeList userElems = doc.getElementsByTagName("user");
+                for (int i = 0; i < userElems.getLength(); i++) {
+                    Element ue = (Element) userElems.item(i);
+                    String name = ue.getElementsByTagName("name")
+                            .item(0)
+                            .getTextContent()
+                            .trim();
+                    users.add(name);
+                }
+                // один вызов — одно полное обновление модели
+                updateUserList(users);
+            }
+        } catch (Exception e) {
+            logger.error("List error", e);
+        }
+    }
+
+    private void sendHistory() {
+        try {
+            if (useSerialization) {
+                objOut.writeObject(new HistoryCommand(sessionId));
+                objOut.flush();
+                Object r = objIn.readObject();
+                if (r instanceof HistoryResponse(List<ChatMessage> history)) {
+                    history.forEach(m -> appendChat(m.fromUser() + ": " + m.text()));
+                }
+            } else {
+                String xml = "<command name=\"history\"><session>" + sessionId + "</session></command>";
+                sendXml(xml);
+                Document d = readXml();
+                assert d != null;
+                NodeList nm = d.getElementsByTagName("message");
+                for (int i = 0; i < nm.getLength(); i++) {
+                    Element me = (Element) nm.item(i);
+                    String from = me.getAttribute("from");
+                    String txt = me.getTextContent();
+                    appendChat(from + ": " + txt);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("History error", e);
+        }
+    }
+
+    private void sendMessage() {
+        String txt = inputField.getText().trim();
+        if (txt.isEmpty()) return;
+        inputField.setText("");
+        try {
+            if (useSerialization) {
+                objOut.writeObject(new MessageCommand(sessionId, txt));
+                objOut.flush();
+            } else {
+                String xml = "<command name=\"message\"><session>" + sessionId
+                        + "</session><message>" + escapeXml(txt)
+                        + "</message></command>";
+                sendXml(xml);
+            }
+        } catch (Exception e) {
+            logger.error("Send msg error", e);
+        }
+    }
+
+    private void incomingLoop() {
+        try {
+            while (true) {
+                if (useSerialization) {
+                    Object o = objIn.readObject();
+                    if (o instanceof MessageEvent(String fromUser, String text)) {
+                        appendChat(fromUser + ": " + text);
+                    } else if (o instanceof UserLoginEvent(String name)) {
+                        // добавляем в список и печатаем в чат
+                        userListModel.addElement(name);
+                        appendChat(name + " вошёл в чат");
+                    } else if (o instanceof UserLogoutEvent(String name)) {
+                        userListModel.removeElement(name);
+                        appendChat(name + " покинул чат");
+                    }
+                } else {
+                    Document d = readXml();
+                    if (d == null) continue;
+                    Element r = d.getDocumentElement();
+                    if (!"event".equals(r.getNodeName())) continue;
+                    String name = r.getAttribute("name");
+                    switch (name) {
+                        case "message" -> {
+                            String msg = r.getElementsByTagName("message").item(0).getTextContent();
+                            String from = r.getElementsByTagName("name").item(0).getTextContent();
+                            appendChat(from + ": " + msg);
+                        }
+                        case "userlogin" -> {
+                            String u = r.getElementsByTagName("name").item(0).getTextContent();
+                            updateUserListWith(u);
+                            appendChat(u + " вошёл в чат");
+                        }
+                        case "userlogout" -> {
+                            String u = r.getElementsByTagName("name").item(0).getTextContent();
+                            userListModel.removeElement(u);
+                            appendChat(u + " покинул чат");
+                        }
+                        case "history" -> {
+                            NodeList msgs = r.getElementsByTagName("message");
+                            for (int i = 0; i < msgs.getLength(); i++) {
+                                Element me = (Element) msgs.item(i);
+                                appendChat(me.getAttribute("from") + ": " + me.getTextContent());
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Incoming loop error", e);
+        }
+    }
+
+    // --- XML helpers ---
+    private void sendXml(String xml) throws IOException {
+        byte[] data = xml.getBytes(StandardCharsets.UTF_8);
         dataOut.writeInt(data.length);
         dataOut.write(data);
         dataOut.flush();
     }
 
-    // Чтение XML-документа от сервера с обработкой ошибок
-    private Document safeReadXmlDocument() {
+    private Document readXml() {
         try {
-            int length = dataIn.readInt();
-            if (length <= 0 || length > 10_000) {
-                logger.warn("Получена некорректная длина сообщения: {}", length);
-                return null;
-            }
-            byte[] data = new byte[length];
-            dataIn.readFully(data);
-            ByteArrayInputStream byteIn = new ByteArrayInputStream(data);
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            return builder.parse(byteIn);
+            int len = dataIn.readInt();
+            byte[] buf = new byte[len];
+            dataIn.readFully(buf);
+            DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            return db.parse(new ByteArrayInputStream(buf));
         } catch (Exception e) {
-            logger.error("Ошибка чтения XML документа", e);
             return null;
         }
     }
 
-    // Обработка полученного XML-сообщения
-    private void processXmlDocument(Document doc) {
-        try {
-            Element root = doc.getDocumentElement();
-            if (root == null) return;
-            String nodeName = root.getNodeName();
-            switch (nodeName) {
-                case "success" -> {
-                    NodeList sessions = root.getElementsByTagName("session");
-                    if (sessions.getLength() > 0) {
-                        sessionId = sessions.item(0).getTextContent().trim();
-                        appendChat("Успешный вход. Сессия: " + sessionId);
-                    }
-                }
-                case "error" -> {
-                    NodeList messages = root.getElementsByTagName("message");
-                    if (messages.getLength() > 0) {
-                        String errorMsg = messages.item(0).getTextContent().trim();
-                        appendChat("Ошибка: " + errorMsg);
-                    }
-                }
-                case "event" -> {
-                    String eventName = root.getAttribute("name");
-                    switch (eventName) {
-                        case "message" -> {
-                            NodeList messageNodes = root.getElementsByTagName("message");
-                            NodeList nameNodes = root.getElementsByTagName("name");
-                            if (messageNodes.getLength() > 0 && nameNodes.getLength() > 0) {
-                                String msg = messageNodes.item(0).getTextContent().trim();
-                                String fromUser = nameNodes.item(0).getTextContent().trim();
-                                appendChat(fromUser + ": " + msg);
-                            }
-                        }
-                        case "userlogin" -> {
-                            NodeList nameNodes = root.getElementsByTagName("name");
-                            if (nameNodes.getLength() > 0) {
-                                String newUser = nameNodes.item(0).getTextContent().trim();
-                                appendChat("Пользователь " + newUser + " вошел в чат");
-                            }
-                        }
-                        case "userlogout" -> {
-                            NodeList nameNodes = root.getElementsByTagName("name");
-                            if (nameNodes.getLength() > 0) {
-                                String user = nameNodes.item(0).getTextContent().trim();
-                                appendChat("Пользователь " + user + " покинул чат");
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            logger.error("Ошибка обработки входящего XML сообщения", e);
-        }
+    // UI updates
+    private void appendChat(String msg) {
+        SwingUtilities.invokeLater(() -> chatArea.append(msg + "\n"));
     }
 
-    private void appendChat(String message) {
-        SwingUtilities.invokeLater(() -> chatArea.append(message + "\n"));
+    private void updateUserList(List<String> users) {
+        SwingUtilities.invokeLater(() -> {
+            userListModel.clear();
+            users.forEach(userListModel::addElement);
+        });
     }
 
-    // Поток для чтения входящих сообщений
-    private class IncomingReader implements Runnable {
-        public void run() {
-            try {
-                while (true) {
-                    Document doc = safeReadXmlDocument();
-                    if (doc == null) {
-                        continue;
-                    }
-                    processXmlDocument(doc);
-                }
-            } catch (Exception e) {
-                logger.error("Ошибка чтения сообщений", e);
-                System.exit(1);
+    private void updateUserListWith(String user) {
+        SwingUtilities.invokeLater(() -> {
+            if (!userListModel.contains(user)) {
+                userListModel.addElement(user);
             }
-        }
+        });
     }
 }

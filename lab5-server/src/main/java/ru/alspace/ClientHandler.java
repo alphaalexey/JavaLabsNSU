@@ -4,7 +4,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import ru.alspace.common.model.command.*;
+import ru.alspace.common.model.data.ChatMessage;
+import ru.alspace.common.model.event.Event;
+import ru.alspace.common.model.response.ErrorResponse;
+import ru.alspace.common.model.response.HistoryResponse;
+import ru.alspace.common.model.response.SuccessResponse;
+import ru.alspace.common.model.response.UserListResponse;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -14,6 +20,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.net.Socket;
+import java.util.List;
 import java.util.UUID;
 
 public class ClientHandler implements Runnable {
@@ -22,10 +29,17 @@ public class ClientHandler implements Runnable {
     private final Socket socket;
     private final ChatServer server;
     private final boolean useSerialization;
-    private String sessionId;
-    private String userName;
+
+    // XML
     private DataInputStream dataIn;
     private DataOutputStream dataOut;
+
+    // Serialization
+    private ObjectInputStream objIn;
+    private ObjectOutputStream objOut;
+
+    private String sessionId;
+    private String userName;
 
     public ClientHandler(Socket socket, ChatServer server, boolean useSerialization) {
         this.socket = socket;
@@ -41,7 +55,8 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             if (useSerialization) {
-                // Реализация на базе сериализации
+                objOut = new ObjectOutputStream(socket.getOutputStream());
+                objIn = new ObjectInputStream(socket.getInputStream());
                 processSerialization();
             } else {
                 dataIn = new DataInputStream(socket.getInputStream());
@@ -49,250 +64,259 @@ public class ClientHandler implements Runnable {
                 processXml();
             }
         } catch (IOException e) {
-            logger.error("Ошибка в работе клиента", e);
+            logger.error("Client error", e);
         } finally {
             cleanup();
         }
     }
 
-    private void processSerialization() {
-        // Реализацию можно выполнить аналогично XML-версии, используя объекты.
-        // TODO: implement
-    }
-
+    // --- XML mode ---
     private void processXml() {
         try {
-            // Пытаемся прочитать и обработать команду login
+            // login
             Document loginDoc = safeReadXmlDocument();
-            if (loginDoc == null) {
-                return; // если не удалось прочитать, завершаем обработку
-            }
+            if (!handleXmlLogin(loginDoc)) return;
 
-            Element root = loginDoc.getDocumentElement();
-            if (root == null || !"command".equals(root.getNodeName()) || !"login".equals(root.getAttribute("name"))) {
-                sendXmlError("Ожидалась команда login");
-                return;
-            }
-
-            // Читаем имя пользователя
-            NodeList nameNodes = root.getElementsByTagName("name");
-            if (nameNodes.getLength() == 0 || nameNodes.item(0).getTextContent().trim().isEmpty()) {
-                sendXmlError("Не указано имя пользователя");
-                return;
-            }
-            userName = nameNodes.item(0).getTextContent().trim();
-
-            // Генерируем уникальный sessionId и регистрируем клиента
-            sessionId = UUID.randomUUID().toString();
-            if (!server.registerClient(sessionId, this)) {
-                sendXmlError("Пользователь уже зарегистрирован");
-                return;
-            }
-            sendXmlSuccessWithSession(sessionId);
-            logger.info("Пользователь {} вошел в чат с сессией {}", userName, sessionId);
-
-            // Основной цикл обработки команд клиента
-            label:
+            // main loop
+            loopXml:
             while (true) {
-                Document doc = safeReadXmlDocument();
-                if (doc == null) {
-                    break; // если не удалось прочитать документ, завершаем сессию
-                }
-
-                try {
-                    Element cmd = doc.getDocumentElement();
-                    if (cmd == null) {
-                        sendXmlError("Пустой запрос");
-                        continue;
+                Document cmd = safeReadXmlDocument();
+                if (cmd == null) break;
+                Element root = cmd.getDocumentElement();
+                String cn = root.getAttribute("name");
+                switch (cn) {
+                    case "list" -> sendXmlUserList();
+                    case "history" -> sendXmlHistory();
+                    case "message" -> {
+                        String msg = root.getElementsByTagName("message").item(0).getTextContent();
+                        server.broadcastMessage(userName, msg);
+                        sendXmlSuccess();
                     }
-                    String commandName = cmd.getAttribute("name");
-                    switch (commandName) {
-                        case "list":
-                            sendUserList();
-                            break;
-                        case "message":
-                            NodeList messageNodes = cmd.getElementsByTagName("message");
-                            if (messageNodes.getLength() == 0 || messageNodes.item(0).getTextContent().trim().isEmpty()) {
-                                sendXmlError("Пустое сообщение");
-                                continue;
-                            }
-                            String message = messageNodes.item(0).getTextContent().trim();
-                            server.broadcastMessage(message, userName);
-                            sendXmlSuccess();
-                            break;
-                        case "logout":
-                            sendXmlSuccess();
-                            break label;
-                        default:
-                            sendXmlError("Неизвестная команда: " + commandName);
-                            break;
+                    case "logout" -> {
+                        sendXmlSuccess();
+                        break loopXml;
                     }
-                } catch (Exception e) {
-                    logger.error("Ошибка обработки запроса от пользователя {}", userName, e);
-                    sendXmlError("Внутренняя ошибка сервера");
+                    default -> sendXmlError("Unknown cmd: " + cn);
                 }
             }
         } catch (Exception e) {
-            logger.error("Ошибка обработки XML сообщений", e);
+            logger.error("XML processing error", e);
         }
     }
 
-    // Чтение XML-документа с защитой от ошибок
+    private boolean handleXmlLogin(Document doc) throws Exception {
+        if (doc == null) return false;
+        Element r = doc.getDocumentElement();
+        if (!"command".equals(r.getNodeName()) || !"login".equals(r.getAttribute("name"))) {
+            sendXmlError("Expected login");
+            return false;
+        }
+        String nm = r.getElementsByTagName("name").item(0).getTextContent().trim();
+        if (nm.isEmpty()) {
+            sendXmlError("Empty name");
+            return false;
+        }
+        userName = nm;
+        sessionId = UUID.randomUUID().toString();
+        if (!server.registerClient(sessionId, this)) {
+            sendXmlError("Already registered");
+            return false;
+        }
+        sendXmlSuccessWithSession(sessionId);
+        return true;
+    }
+
     private Document safeReadXmlDocument() {
         try {
-            int length = dataIn.readInt();
-            if (length <= 0 || length > 10_000) { // ограничиваем максимальную длину
-                logger.warn("Получена некорректная длина сообщения: {}", length);
-                return null;
-            }
-            byte[] data = new byte[length];
-            dataIn.readFully(data);
-            ByteArrayInputStream byteIn = new ByteArrayInputStream(data);
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            return builder.parse(byteIn);
-        } catch (EOFException e) {
-            logger.info("Сессия закончена {} {}", userName, sessionId);
-            return null;
+            int len = dataIn.readInt();
+            if (len <= 0 || len > 100_000) return null;
+            byte[] buf = new byte[len];
+            dataIn.readFully(buf);
+            DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            return db.parse(new ByteArrayInputStream(buf));
         } catch (Exception e) {
-            logger.error("Ошибка чтения XML документа", e);
             return null;
         }
     }
 
-    // Отправка XML-документа клиенту
     private void sendXmlDocument(Document doc) {
         try {
-            Transformer transformer = TransformerFactory.newInstance().newTransformer();
-            ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-            transformer.transform(new DOMSource(doc), new StreamResult(byteOut));
-            byte[] data = byteOut.toByteArray();
+            Transformer tf = TransformerFactory.newInstance().newTransformer();
+            ByteArrayOutputStream bout = new ByteArrayOutputStream();
+            tf.transform(new DOMSource(doc), new StreamResult(bout));
+            byte[] data = bout.toByteArray();
             dataOut.writeInt(data.length);
             dataOut.write(data);
             dataOut.flush();
-        } catch (Exception e) {
-            logger.error("Ошибка отправки XML документа", e);
+        } catch (Exception ignored) {
         }
     }
 
-    private void sendXmlError(String message) {
+    private void sendXmlError(String msg) throws Exception {
+        DocumentBuilder b = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        Document d = b.newDocument();
+        Element e = d.createElement("error");
+        d.appendChild(e);
+        Element m = d.createElement("message");
+        m.setTextContent(msg);
+        e.appendChild(m);
+        sendXmlDocument(d);
+    }
+
+    private void sendXmlSuccess() throws Exception {
+        DocumentBuilder b = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        Document d = b.newDocument();
+        d.appendChild(d.createElement("success"));
+        sendXmlDocument(d);
+    }
+
+    private void sendXmlSuccessWithSession(String sid) throws Exception {
+        DocumentBuilder b = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        Document d = b.newDocument();
+        Element s = d.createElement("success");
+        d.appendChild(s);
+        Element se = d.createElement("session");
+        se.setTextContent(sid);
+        s.appendChild(se);
+        sendXmlDocument(d);
+    }
+
+    private void sendXmlUserList() throws Exception {
+        List<String> ul = server.getUserList();
+        DocumentBuilder b = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        Document d = b.newDocument();
+        Element s = d.createElement("success");
+        d.appendChild(s);
+        Element lu = d.createElement("listusers");
+        s.appendChild(lu);
+        for (String u : ul) {
+            Element ue = d.createElement("user");
+            Element ne = d.createElement("name");
+            ne.setTextContent(u);
+            ue.appendChild(ne);
+            Element te = d.createElement("type");
+            te.setTextContent("SWING_CLIENT");
+            ue.appendChild(te);
+            lu.appendChild(ue);
+        }
+        sendXmlDocument(d);
+    }
+
+    private void sendXmlHistory() throws Exception {
+        List<ChatMessage> hist = server.getHistory();
+        DocumentBuilder b = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        Document d = b.newDocument();
+        Element ev = d.createElement("event");
+        ev.setAttribute("name", "history");
+        d.appendChild(ev);
+        for (ChatMessage m : hist) {
+            Element me = d.createElement("message");
+            me.setAttribute("from", m.fromUser());
+            me.setTextContent(m.text());
+            ev.appendChild(me);
+        }
+        sendXmlDocument(d);
+    }
+
+    public void sendXmlChatMessage(String from, String msg) {
         try {
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            Document doc = builder.newDocument();
-            Element error = doc.createElement("error");
-            doc.appendChild(error);
-            Element msg = doc.createElement("message");
-            msg.setTextContent(message);
-            error.appendChild(msg);
-            sendXmlDocument(doc);
-        } catch (Exception e) {
-            logger.error("Ошибка отправки XML ошибки", e);
+            DocumentBuilder b = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            Document d = b.newDocument();
+            Element ev = d.createElement("event");
+            ev.setAttribute("name", "message");
+            d.appendChild(ev);
+            Element me = d.createElement("message");
+            me.setTextContent(msg);
+            ev.appendChild(me);
+            Element ne = d.createElement("name");
+            ne.setTextContent(from);
+            ev.appendChild(ne);
+            sendXmlDocument(d);
+        } catch (Exception ignored) {
         }
     }
 
-    private void sendXmlSuccess() {
+    public void sendXmlUserLoginEvent(String user) {
         try {
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            Document doc = builder.newDocument();
-            Element success = doc.createElement("success");
-            doc.appendChild(success);
-            sendXmlDocument(doc);
-        } catch (Exception e) {
-            logger.error("Ошибка отправки XML успеха", e);
+            DocumentBuilder b = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            Document d = b.newDocument();
+            Element ev = d.createElement("event");
+            ev.setAttribute("name", "userlogin");
+            d.appendChild(ev);
+            Element ne = d.createElement("name");
+            ne.setTextContent(user);
+            ev.appendChild(ne);
+            sendXmlDocument(d);
+        } catch (Exception ignored) {
         }
     }
 
-    private void sendXmlSuccessWithSession(String sessionId) {
+    public void sendXmlUserLogoutEvent(String user) {
         try {
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            Document doc = builder.newDocument();
-            Element success = doc.createElement("success");
-            doc.appendChild(success);
-            Element sessionElem = doc.createElement("session");
-            sessionElem.setTextContent(sessionId);
-            success.appendChild(sessionElem);
-            sendXmlDocument(doc);
-        } catch (Exception e) {
-            logger.error("Ошибка отправки XML успеха с сессией", e);
+            DocumentBuilder b = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            Document d = b.newDocument();
+            Element ev = d.createElement("event");
+            ev.setAttribute("name", "userlogout");
+            d.appendChild(ev);
+            Element ne = d.createElement("name");
+            ne.setTextContent(user);
+            ev.appendChild(ne);
+            sendXmlDocument(d);
+        } catch (Exception ignored) {
         }
     }
 
-    // Отправка списка пользователей
-    private void sendUserList() {
+    // --- Serialization mode ---
+    private void processSerialization() {
         try {
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            Document doc = builder.newDocument();
-            Element success = doc.createElement("success");
-            doc.appendChild(success);
-            Element listUsers = doc.createElement("listusers");
-            success.appendChild(listUsers);
-            for (String user : server.getUserList()) {
-                Element userElem = doc.createElement("user");
-                Element nameElem = doc.createElement("name");
-                nameElem.setTextContent(user);
-                userElem.appendChild(nameElem);
-                Element typeElem = doc.createElement("type");
-                typeElem.setTextContent("SWING_CLIENT"); // для примера
-                userElem.appendChild(typeElem);
-                listUsers.appendChild(userElem);
+            // login
+            Object o = objIn.readObject();
+            if (!(o instanceof LoginCommand lc)) return;
+
+            userName = lc.userName();
+            sessionId = UUID.randomUUID().toString();
+            if (!server.registerClient(sessionId, this)) {
+                objOut.writeObject(new ErrorResponse("Already registered"));
+                return;
             }
-            sendXmlDocument(doc);
+            objOut.writeObject(new SuccessResponse(sessionId));
+
+            // main loop
+            label:
+            while (true) {
+                Object cmd = objIn.readObject();
+                switch (cmd) {
+                    case MessageCommand mc:
+                        server.broadcastMessage(userName, mc.text());
+                        objOut.writeObject(new SuccessResponse(null));
+                        break;
+                    case ListCommand ignored:
+                        objOut.writeObject(new UserListResponse(server.getUserList()));
+                        break;
+                    case HistoryCommand ignored:
+                        objOut.writeObject(new HistoryResponse(server.getHistory()));
+                        break;
+                    case LogoutCommand ignored:
+                        objOut.writeObject(new SuccessResponse(null));
+                        break label;
+                    case null:
+                    default:
+                        objOut.writeObject(new ErrorResponse("Unknown cmd"));
+                        break;
+                }
+            }
         } catch (Exception e) {
-            logger.error("Ошибка отправки списка пользователей", e);
+            logger.error("Serialization processing error", e);
         }
     }
 
-    // Отправка сообщения чата (событие от сервера)
-    public void sendChatMessage(String fromUser, String message) {
+    // отправка событий (MessageEvent, UserLoginEvent, UserLogoutEvent)
+    public void sendChatEvent(Event ev) {
+        if (!useSerialization) return;
         try {
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            Document doc = builder.newDocument();
-            Element event = doc.createElement("event");
-            event.setAttribute("name", "message");
-            doc.appendChild(event);
-            Element messageElem = doc.createElement("message");
-            messageElem.setTextContent(message);
-            event.appendChild(messageElem);
-            Element nameElem = doc.createElement("name");
-            nameElem.setTextContent(fromUser);
-            event.appendChild(nameElem);
-            sendXmlDocument(doc);
-        } catch (Exception e) {
-            logger.error("Ошибка отправки сообщения", e);
-        }
-    }
-
-    // Отправка событий подключения/отключения пользователя
-    public void sendUserLoginEvent(String newUser) {
-        try {
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            Document doc = builder.newDocument();
-            Element event = doc.createElement("event");
-            event.setAttribute("name", "userlogin");
-            doc.appendChild(event);
-            Element nameElem = doc.createElement("name");
-            nameElem.setTextContent(newUser);
-            event.appendChild(nameElem);
-            sendXmlDocument(doc);
-        } catch (Exception e) {
-            logger.error("Ошибка отправки события входа пользователя", e);
-        }
-    }
-
-    public void sendUserLogoutEvent(String user) {
-        try {
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            Document doc = builder.newDocument();
-            Element event = doc.createElement("event");
-            event.setAttribute("name", "userlogout");
-            doc.appendChild(event);
-            Element nameElem = doc.createElement("name");
-            nameElem.setTextContent(user);
-            event.appendChild(nameElem);
-            sendXmlDocument(doc);
-        } catch (Exception e) {
-            logger.error("Ошибка отправки события выхода пользователя", e);
+            objOut.writeObject(ev);
+            objOut.flush();
+        } catch (IOException ignored) {
         }
     }
 
@@ -301,11 +325,8 @@ public class ClientHandler implements Runnable {
             if (!useSerialization && sessionId != null) {
                 server.removeClient(sessionId, userName);
             }
-            if (socket != null && !socket.isClosed()) {
-                socket.close();
-            }
-        } catch (IOException e) {
-            logger.error("Ошибка закрытия соединения", e);
+            socket.close();
+        } catch (IOException ignored) {
         }
     }
 }

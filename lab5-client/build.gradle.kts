@@ -15,6 +15,8 @@ java {
 }
 
 dependencies {
+    implementation(project(":lab5-common"))
+
     implementation(platform(libs.log4j.bom))
     implementation(libs.log4j.api)
     runtimeOnly(libs.log4j.slf4j2.impl)

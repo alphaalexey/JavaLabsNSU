@@ -4,10 +4,14 @@
         <File name="LogFile" fileName="lab5-server.log">
             <PatternLayout pattern="%d{dd.MM.yyyy, HH:mm:ss} %-5p %c{1}:%L - %m%n"/>
         </File>
+        <Console name="Console">
+            <PatternLayout pattern="%d{dd.MM.yyyy, HH:mm:ss} %-5p %c{1}:%L - %m%n"/>
+        </Console>
     </Appenders>
     <Loggers>
-        <Root level="info">
+        <Root level="INFO">
             <AppenderRef ref="LogFile"/>
+            <AppenderRef ref="Console" level="DEBUG"/>
         </Root>
     </Loggers>
 </Configuration>

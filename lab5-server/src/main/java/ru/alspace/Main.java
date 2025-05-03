@@ -3,20 +3,22 @@ package ru.alspace;
 public class Main {
     public static void main(String[] args) {
         int port;
-        if (args.length == 1) {
+        boolean useSerialization = false;
+
+        if (args.length >= 1) {
             try {
                 port = Integer.parseInt(args[0]);
             } catch (NumberFormatException e) {
-                System.exit(1);
+                System.err.println("Invalid port");
                 return;
             }
-        } else if (args.length == 0) {
-            port = 12345;
+            if (args.length >= 2 && "ser".equalsIgnoreCase(args[1])) {
+                useSerialization = true;
+            }
         } else {
-            System.exit(1);
-            return;
+            port = 12345;
         }
-        boolean useSerialization = false; // false - XML, true - объектная сериализация
+
         ChatServer server = new ChatServer(port, useSerialization);
         server.start();
     }

@@ -4,47 +4,40 @@ import javax.swing.*;
 
 public class Main {
     public static void main(String[] args) {
-        String host;
-        int port;
-
+        // 1. адрес/порт
         JTextField hostField = new JTextField();
         JTextField portField = new JTextField();
-        Object[] message = {
+        Object[] msg = {
                 "Host:", hostField,
                 "Port:", portField
         };
-
-        // Запрос адреса сервера
-        int option = JOptionPane.showConfirmDialog(
-                null,
-                message,
-                "Server address",
-                JOptionPane.OK_CANCEL_OPTION
-        );
-        if (option == JOptionPane.OK_OPTION) {
-            host = hostField.getText().trim();
-            try {
-                port = Integer.parseUnsignedInt(portField.getText());
-            } catch (NumberFormatException e) {
-                port = -1;
-            }
-
-            if (host.isEmpty() || port == -1) {
-                System.exit(1);
-            }
-        } else {
-            System.exit(1);
+        if (JOptionPane.showConfirmDialog(null, msg, "Server address",
+                JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) {
+            return;
+        }
+        String host = hostField.getText().trim();
+        int port;
+        try {
+            port = Integer.parseInt(portField.getText().trim());
+        } catch (Exception e) {
             return;
         }
 
+        // 2. имя
         String userName = JOptionPane.showInputDialog("Введите имя пользователя:");
         if (userName == null || userName.trim().isEmpty()) {
             return;
         }
 
-        int finalPort = port;
+        // 3. выбор протокола
+        String[] protocols = {"XML", "Serialization"};
+        int choice = JOptionPane.showOptionDialog(null, "Протокол:", "Protocol",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, protocols, protocols[0]);
+        boolean useSer = (choice == 1);
+
         SwingUtilities.invokeLater(() -> {
-            ChatClient client = new ChatClient(host, finalPort, userName);
+            ChatClient client = new ChatClient(host, port, userName, useSer);
             client.setVisible(true);
         });
     }
