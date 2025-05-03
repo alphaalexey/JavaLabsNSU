@@ -52,6 +52,7 @@ public class ChatClient extends JFrame {
 
         setTitle("Чат - " + userName + (useSerialization ? " [SER]" : " [XML]"));
         setSize(600, 400);
+        setMinimumSize(new Dimension(400, 300));
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         initUI();
 
@@ -66,6 +67,7 @@ public class ChatClient extends JFrame {
             }
             sendLogin();
             new Thread(this::incomingLoop).start();
+            inputField.requestFocusInWindow();
         } catch (IOException e) {
             logger.error("Connect error", e);
             JOptionPane.showMessageDialog(this, "Cannot connect", "Error", JOptionPane.ERROR_MESSAGE);
@@ -83,15 +85,8 @@ public class ChatClient extends JFrame {
 
     private void initUI() {
         chatArea.setEditable(false);
-
-        JButton sendBtn = new JButton("Send");
-        sendBtn.addActionListener((ActionEvent e) -> sendMessage());
-
-        inputField.addActionListener(e -> sendMessage());
-
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.add(inputField, BorderLayout.CENTER);
-        bottom.add(sendBtn, BorderLayout.EAST);
+        chatArea.setLineWrap(true);
+        chatArea.setWrapStyleWord(true);
 
         JScrollPane chatScroll = new JScrollPane(chatArea);
         JScrollPane userScroll = new JScrollPane(userList);
@@ -99,6 +94,13 @@ public class ChatClient extends JFrame {
 
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, userScroll, chatScroll);
         split.setDividerLocation(120);
+
+        JButton sendBtn = new JButton("Send");
+        sendBtn.addActionListener((ActionEvent e) -> sendMessage());
+        getRootPane().setDefaultButton(sendBtn);
+        JPanel bottom = new JPanel(new BorderLayout(5, 5));
+        bottom.add(inputField, BorderLayout.CENTER);
+        bottom.add(sendBtn, BorderLayout.EAST);
 
         getContentPane().add(split, BorderLayout.CENTER);
         getContentPane().add(bottom, BorderLayout.SOUTH);
@@ -142,9 +144,7 @@ public class ChatClient extends JFrame {
                 }
             } else {
                 // шлём XML-запрос
-                String xml = "<command name=\"list\">"
-                        + "<session>" + sessionId + "</session>"
-                        + "</command>";
+                String xml = "<command name=\"list\"><session>" + sessionId + "</session></command>";
                 sendXml(xml);
                 Document doc = readXml();
                 if (doc == null) return;
@@ -223,10 +223,10 @@ public class ChatClient extends JFrame {
                         appendChat(fromUser + ": " + text);
                     } else if (o instanceof UserLoginEvent(String name)) {
                         // добавляем в список и печатаем в чат
-                        userListModel.addElement(name);
+                        addNewUserToUserList(name);
                         appendChat(name + " вошёл в чат");
                     } else if (o instanceof UserLogoutEvent(String name)) {
-                        userListModel.removeElement(name);
+                        removeUserFromUserList(name);
                         appendChat(name + " покинул чат");
                     }
                 } else {
@@ -234,8 +234,7 @@ public class ChatClient extends JFrame {
                     if (d == null) continue;
                     Element r = d.getDocumentElement();
                     if (!"event".equals(r.getNodeName())) continue;
-                    String name = r.getAttribute("name");
-                    switch (name) {
+                    switch (r.getAttribute("name")) {
                         case "message" -> {
                             String msg = r.getElementsByTagName("message").item(0).getTextContent();
                             String from = r.getElementsByTagName("name").item(0).getTextContent();
@@ -243,7 +242,7 @@ public class ChatClient extends JFrame {
                         }
                         case "userlogin" -> {
                             String u = r.getElementsByTagName("name").item(0).getTextContent();
-                            updateUserListWith(u);
+                            addNewUserToUserList(u);
                             appendChat(u + " вошёл в чат");
                         }
                         case "userlogout" -> {
@@ -288,7 +287,10 @@ public class ChatClient extends JFrame {
 
     // UI updates
     private void appendChat(String msg) {
-        SwingUtilities.invokeLater(() -> chatArea.append(msg + "\n"));
+        SwingUtilities.invokeLater(() -> {
+            chatArea.append(msg + "\n");
+            chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        });
     }
 
     private void updateUserList(List<String> users) {
@@ -298,11 +300,15 @@ public class ChatClient extends JFrame {
         });
     }
 
-    private void updateUserListWith(String user) {
+    private void addNewUserToUserList(String user) {
         SwingUtilities.invokeLater(() -> {
             if (!userListModel.contains(user)) {
                 userListModel.addElement(user);
             }
         });
+    }
+
+    private void removeUserFromUserList(String user) {
+        SwingUtilities.invokeLater(() -> userListModel.removeElement(user));
     }
 }
